@@ -23,6 +23,18 @@
 #include <queue>
 #include "../sdk/sdk.h"
 
+enum PointField
+{
+  INT8 = 1,
+  UINT8,
+  INT16,
+  UINT16,
+  INT32,
+  UINT32,
+  FLOAT32,
+  FLOAT64
+};
+
 typedef struct
 {
   std::string frame_id;
@@ -45,6 +57,7 @@ typedef struct
   int ptp_enable;
 
   int frame_package_num;
+  int timemode;
   // int window;
   // int min_angle;
   // int max_angle;
@@ -68,37 +81,98 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
     ArgData *argdata = (ArgData *)client_data;
     if (argdata->output_pointcloud)
     {
-      sensor_msgs::PointCloud msg;
-      int N = data->dot_num;
-      msg.header.stamp.sec = data->timestamp / 1000000000;
-      msg.header.stamp.nsec = data->timestamp % 1000000000;
-      msg.header.frame_id = argdata->frame_id;
-      msg.points.resize(N);
-      msg.channels.resize(1);
-      msg.channels[0].name = "intensities";
-      msg.channels[0].values.resize(N);
+      sensor_msgs::PointCloud2 cloud;
+      cloud.header.frame_id.assign(argdata->frame_id);
+      cloud.height = 1;
+      cloud.width = data->dot_num;
+      cloud.fields.resize(7);
+      cloud.fields[0].offset = 0;
+      cloud.fields[0].name = "x";
+      cloud.fields[0].count = 1;
+      cloud.fields[0].datatype = PointField::FLOAT32;
 
-      for (size_t i = 0; i < N; i++)
+      cloud.fields[1].offset = 4;
+      cloud.fields[1].name = "y";
+      cloud.fields[1].count = 1;
+      cloud.fields[1].datatype = PointField::FLOAT32;
+
+      cloud.fields[2].offset = 8;
+      cloud.fields[2].name = "z";
+      cloud.fields[2].count = 1;
+      cloud.fields[2].datatype = PointField::FLOAT32;
+
+      cloud.fields[3].offset = 12;
+      cloud.fields[3].name = "intensity";
+      cloud.fields[3].count = 1;
+      cloud.fields[3].datatype = PointField::FLOAT32;
+
+      cloud.fields[4].offset = 16;
+      cloud.fields[4].name = "tag";
+      cloud.fields[4].count = 1;
+      cloud.fields[4].datatype = PointField::UINT8;
+
+      cloud.fields[5].offset = 17;
+      cloud.fields[5].name = "line";
+      cloud.fields[5].count = 1;
+      cloud.fields[5].datatype = PointField::UINT8;
+
+      cloud.fields[6].offset = 18;
+      cloud.fields[6].name = "timestamp";
+      cloud.fields[6].count = 1;
+      cloud.fields[6].datatype = PointField::FLOAT64;
+      cloud.point_step = 26;
+      cloud.row_step = cloud.width * cloud.point_step;
+      cloud.data.resize(cloud.row_step * cloud.height);
+
+      for (size_t i = 0; i < data->dot_num; i++)
       {
-        msg.points[i].x = p_point_data[i].x;
-        msg.points[i].y = p_point_data[i].y;
-        msg.points[i].z = p_point_data[i].z;
-        msg.channels[0].values[i] = p_point_data[i].reflectivity;
+        memcpy(&cloud.data[0] + i * 26, &p_point_data[i].x, 4);
+        memcpy(&cloud.data[0] + i * 26 + 4, &p_point_data[i].y, 4);
+        memcpy(&cloud.data[0] + i * 26 + 8, &p_point_data[i].z, 4);
+        float reflectivity = p_point_data[i].reflectivity;
+        memcpy(&cloud.data[0] + i * 26 + 12, &reflectivity, 4);
+        memcpy(&cloud.data[0] + i * 26 + 16, &p_point_data[i].tag, 1);
+        memcpy(&cloud.data[0] + i * 26 + 17, &p_point_data[i].line, 1);
+
+        double offset_time = p_point_data[i].offset_time;
+        memcpy(&cloud.data[0] + i * 26 + 18, &offset_time, 8);
       }
-      sensor_msgs::PointCloud2 laserCloudMsg;
-      convertPointCloudToPointCloud2(msg, laserCloudMsg);
-      argdata->pub_pointcloud.publish(laserCloudMsg);
+
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        // 获取时间的不同精度
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        cloud.header.stamp.sec = nanoseconds.count() / 1000000000;
+        cloud.header.stamp.nsec = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        cloud.header.stamp.sec = data->timestamp / 1000000000;
+        cloud.header.stamp.nsec = data->timestamp % 1000000000;
+      }
+      argdata->pub_pointcloud.publish(cloud);
     }
     if (argdata->output_custommsg)
     {
       bluesea_m300::CustomMsg msg;
-      int N = data->dot_num;
+      uint16_t N = data->dot_num;
       msg.point_num = N;
       msg.lidar_id = 0;
       msg.header.frame_id = argdata->frame_id;
-      msg.header.stamp.sec = data->timestamp / 1000000000;
-      msg.header.stamp.nsec = data->timestamp % 1000000000;
 
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        msg.header.stamp.sec = nanoseconds.count() / 1000000000;
+        msg.header.stamp.nsec = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        msg.header.stamp.sec = data->timestamp / 1000000000;
+        msg.header.stamp.nsec = data->timestamp % 1000000000;
+      }
       msg.header.seq++;
       msg.rsvd = {0, 0, 0};
       for (size_t i = 0; i < N; i++)
@@ -144,9 +218,21 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
       imu.linear_acceleration.z = p_imu_data->linear_acceleration_z;
 
       uint64_t nanosec = data->timestamp;
-	  imu.header.frame_id = argdata->frame_id;
-      imu.header.stamp.sec = nanosec / 1000000000;
-      imu.header.stamp.nsec = nanosec % 1000000000;
+      imu.header.frame_id = argdata->frame_id;
+
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        imu.header.stamp.sec = nanoseconds.count() / 1000000000;
+        imu.header.stamp.nsec = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        imu.header.stamp.sec = nanosec / 1000000000;
+        imu.header.stamp.nsec = nanosec % 1000000000;
+      }
+
       argdata->pub_imu.publish(imu);
     }
   }
@@ -189,6 +275,8 @@ int main(int argc, char **argv)
 
   nh.param("frame_package_num", argdata.frame_package_num, 180);
 
+  nh.param("timemode", argdata.timemode, 1);
+
   ShadowsFilterParam sfp;
   nh.param("sfp_enable", sfp.sfp_enable, 1);
   nh.param("window", sfp.window, 1);
@@ -201,9 +289,6 @@ int main(int argc, char **argv)
   nh.param("continuous_times", dfp.continuous_times, 30);
   nh.param("dirty_factor", dfp.dirty_factor, 0.005);
 
-
-
-
   if (argdata.output_pointcloud)
     argdata.pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(argdata.topic_pointcloud, 10);
   if (argdata.output_custommsg)
@@ -212,13 +297,14 @@ int main(int argc, char **argv)
     argdata.pub_imu = nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
 
   BlueSeaLidarSDK::getInstance()->Init();
-  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port,argdata.ptp_enable,argdata.frame_package_num,sfp,dfp);
+  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port, argdata.ptp_enable, argdata.frame_package_num, sfp, dfp);
 
   BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata);
   BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata);
   BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
 
-  while (BlueSeaLidarSDK::getInstance()->read_calib(argdata.lidar_ip.c_str(), argdata.lidar_port) != 0);
+  while (BlueSeaLidarSDK::getInstance()->read_calib(argdata.lidar_ip.c_str(), argdata.lidar_port) != 0)
+    ;
 
   BlueSeaLidarSDK::getInstance()->ConnectLidar(devID);
 

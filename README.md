@@ -71,3 +71,4 @@ BLUESEA ROS2 driver is specially designed to connect to the lidar products produ
 >lidar_port       :lidar port
 >local_port       :listen port
 >ptp_enable       :ptp enable  -1 not set 0 off 1 on
+>timemode         :timestamp format    0:lidar start up time  1：system timestamp(default)

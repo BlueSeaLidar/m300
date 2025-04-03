@@ -13,6 +13,19 @@
 #include "bluesea_m300_inter/srv/control.hpp"
 #include "../sdk/sdk.h" // 假设SDK头文件路径正确
 
+enum PointField
+{
+  INT8 = 1,
+  UINT8,
+  INT16,
+  UINT16,
+  INT32,
+  UINT32,
+  FLOAT32,
+  FLOAT64
+};
+
+
 using namespace std::placeholders;
 struct ArgData
 {
@@ -36,8 +49,7 @@ struct ArgData
   int ptp_enable;
 
   int frame_package_num;
-
-
+  int timemode;
 };
 
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
@@ -54,38 +66,98 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
     ArgData *argdata = (ArgData *)client_data;
     if (argdata->output_pointcloud)
     {
-      sensor_msgs::msg::PointCloud msg;
-      int N = data->dot_num;
-      msg.header.stamp.sec = data->timestamp / 1000000000;
-      msg.header.stamp.nanosec = data->timestamp % 1000000000;
-      msg.header.frame_id = argdata->frame_id;
-      msg.points.resize(N);
-      msg.channels.resize(1);
-      msg.channels[0].name = "intensities";
-      msg.channels[0].values.resize(N);
+      sensor_msgs::msg::PointCloud2 cloud;
+      cloud.header.frame_id.assign(argdata->frame_id);
+      cloud.height = 1;
+      cloud.width = data->dot_num;
+      cloud.fields.resize(7);
+      cloud.fields[0].offset = 0;
+      cloud.fields[0].name = "x";
+      cloud.fields[0].count = 1;
+      cloud.fields[0].datatype = PointField::FLOAT32;
 
-      for (size_t i = 0; i < N; i++)
+      cloud.fields[1].offset = 4;
+      cloud.fields[1].name = "y";
+      cloud.fields[1].count = 1;
+      cloud.fields[1].datatype = PointField::FLOAT32;
+
+      cloud.fields[2].offset = 8;
+      cloud.fields[2].name = "z";
+      cloud.fields[2].count = 1;
+      cloud.fields[2].datatype = PointField::FLOAT32;
+
+      cloud.fields[3].offset = 12;
+      cloud.fields[3].name = "intensity";
+      cloud.fields[3].count = 1;
+      cloud.fields[3].datatype = PointField::FLOAT32;
+
+      cloud.fields[4].offset = 16;
+      cloud.fields[4].name = "tag";
+      cloud.fields[4].count = 1;
+      cloud.fields[4].datatype = PointField::UINT8;
+
+      cloud.fields[5].offset = 17;
+      cloud.fields[5].name = "line";
+      cloud.fields[5].count = 1;
+      cloud.fields[5].datatype = PointField::UINT8;
+
+      cloud.fields[6].offset = 18;
+      cloud.fields[6].name = "timestamp";
+      cloud.fields[6].count = 1;
+      cloud.fields[6].datatype = PointField::FLOAT64;
+      cloud.point_step = 26;
+      cloud.row_step = cloud.width * cloud.point_step;
+      cloud.data.resize(cloud.row_step * cloud.height);
+
+       for (size_t i = 0; i < data->dot_num; i++)
       {
-        msg.points[i].x = p_point_data[i].x;
-        msg.points[i].y = p_point_data[i].y;
-        msg.points[i].z = p_point_data[i].z;
-        msg.channels[0].values[i] = p_point_data[i].reflectivity;
+        memcpy(&cloud.data[0] + i * 26, &p_point_data[i].x, 4);
+        memcpy(&cloud.data[0] + i * 26 + 4, &p_point_data[i].y, 4);
+        memcpy(&cloud.data[0] + i * 26 + 8, &p_point_data[i].z, 4);
+        float reflectivity = p_point_data[i].reflectivity;
+        memcpy(&cloud.data[0] + i * 26 + 12, &reflectivity, 4);
+        memcpy(&cloud.data[0] + i * 26 + 16, &p_point_data[i].tag, 1);
+        memcpy(&cloud.data[0] + i * 26 + 17, &p_point_data[i].line, 1);
+
+        double offset_time = p_point_data[i].offset_time;
+        memcpy(&cloud.data[0] + i * 26 + 18, &offset_time, 8);
+      }
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        // 获取时间的不同精度
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        cloud.header.stamp.sec = nanoseconds.count() / 1000000000;
+        cloud.header.stamp.nanosec  = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        cloud.header.stamp.sec = data->timestamp / 1000000000;
+        cloud.header.stamp.nanosec  = data->timestamp % 1000000000;
       }
 
-      // 实现数据转换
-      sensor_msgs::msg::PointCloud2 cloud2;
-      sensor_msgs::convertPointCloudToPointCloud2(msg, cloud2);
-      argdata->pub_pointcloud->publish(cloud2);
+      argdata->pub_pointcloud->publish(cloud);
     }
     if (argdata->output_custommsg)
     {
       bluesea_m300_inter::msg::CustomMsg msg;
-      int N = data->dot_num;
+      uint16_t N = data->dot_num;
       msg.point_num = N;
       msg.lidar_id = 0;
       msg.header.frame_id = argdata->frame_id;
-      msg.header.stamp.sec = data->timestamp / 1000000000;
-      msg.header.stamp.nanosec = data->timestamp % 1000000000;
+
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        msg.header.stamp.sec = nanoseconds.count() / 1000000000;
+        msg.header.stamp.nanosec = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        msg.header.stamp.sec = data->timestamp / 1000000000;
+        msg.header.stamp.nanosec = data->timestamp % 1000000000;
+      }
 
       msg.rsvd = {0, 0, 0};
       for (size_t i = 0; i < N; i++)
@@ -130,8 +202,20 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
 
       uint64_t nanosec = data->timestamp;
       imu.header.frame_id = argdata->frame_id;
-      imu.header.stamp.sec = nanosec / 1000000000;
-      imu.header.stamp.nanosec = nanosec % 1000000000;
+
+      if (argdata->timemode == 1)
+      {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        imu.header.stamp.sec = nanoseconds.count() / 1000000000;
+        imu.header.stamp.nanosec = nanoseconds.count() % 1000000000;
+      }
+      else
+      {
+        imu.header.stamp.sec = nanosec / 1000000000;
+        imu.header.stamp.nanosec = nanosec % 1000000000;
+      }
+
       argdata->pub_imu->publish(imu);
     }
   }
@@ -147,11 +231,10 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, char *data, int le
   printf("ID::%d print level:%d msg:%s\n", handle, dev_type, data);
 }
 
-#define READ_PARAM(TYPE, NAME, VAR, INIT)     \
-	VAR = INIT;                               \
-	declare_parameter<TYPE>(NAME, VAR); \
-	get_parameter(NAME, VAR);
-
+#define READ_PARAM(TYPE, NAME, VAR, INIT) \
+  VAR = INIT;                             \
+  declare_parameter<TYPE>(NAME, VAR);     \
+  get_parameter(NAME, VAR);
 
 class LidarNode : public rclcpp::Node
 {
@@ -160,31 +243,31 @@ public:
       : Node("lidar_m300"), argdata_{}
   {
     // 读取参数
-    READ_PARAM(std::string,"frame_id", argdata_.frame_id,"map");
-    READ_PARAM(std::string,"topic_pointcloud", argdata_.topic_pointcloud,"pointcloud");
-    READ_PARAM(bool,"output_pointcloud", argdata_.output_pointcloud,true);
-    READ_PARAM(std::string,"topic_custommsg", argdata_.topic_custommsg,"custommsg");
-    READ_PARAM(bool,"output_custommsg", argdata_.output_custommsg,true);
-    READ_PARAM(std::string,"topic_imu", argdata_.topic_imu,"imu");
-    READ_PARAM(bool,"output_imu", argdata_.output_imu,true);
-    READ_PARAM(std::string,"lidar_ip", argdata_.lidar_ip,"192.168.158.98");
-    READ_PARAM(int,"lidar_port", argdata_.lidar_port,6668);
-    READ_PARAM(int,"local_port", argdata_.local_port,6668);
-    READ_PARAM(int,"ptp_enable", argdata_.ptp_enable,-1);
-    READ_PARAM(int,"frame_package_num", argdata_.frame_package_num,180);
-
+    READ_PARAM(std::string, "frame_id", argdata_.frame_id, "map");
+    READ_PARAM(std::string, "topic_pointcloud", argdata_.topic_pointcloud, "pointcloud");
+    READ_PARAM(bool, "output_pointcloud", argdata_.output_pointcloud, true);
+    READ_PARAM(std::string, "topic_custommsg", argdata_.topic_custommsg, "custommsg");
+    READ_PARAM(bool, "output_custommsg", argdata_.output_custommsg, true);
+    READ_PARAM(std::string, "topic_imu", argdata_.topic_imu, "imu");
+    READ_PARAM(bool, "output_imu", argdata_.output_imu, true);
+    READ_PARAM(std::string, "lidar_ip", argdata_.lidar_ip, "192.168.158.98");
+    READ_PARAM(int, "lidar_port", argdata_.lidar_port, 6668);
+    READ_PARAM(int, "local_port", argdata_.local_port, 6668);
+    READ_PARAM(int, "ptp_enable", argdata_.ptp_enable, -1);
+    READ_PARAM(int, "frame_package_num", argdata_.frame_package_num, 180);
+    READ_PARAM(int, "timemode", argdata_.timemode, 1);
 
     ShadowsFilterParam sfp;
-    READ_PARAM(int,"sfp_enable", sfp.sfp_enable,1);
-    READ_PARAM(int,"window", sfp.window,1);
-    READ_PARAM(double,"min_angle", sfp.min_angle,5.0);
-    READ_PARAM(double,"max_angle", sfp.max_angle,175.0);
-    READ_PARAM(double,"effective_distance", sfp.effective_distance,5.0);
+    READ_PARAM(int, "sfp_enable", sfp.sfp_enable, 1);
+    READ_PARAM(int, "window", sfp.window, 1);
+    READ_PARAM(double, "min_angle", sfp.min_angle, 5.0);
+    READ_PARAM(double, "max_angle", sfp.max_angle, 175.0);
+    READ_PARAM(double, "effective_distance", sfp.effective_distance, 5.0);
 
     DirtyFilterParam dfp;
-    READ_PARAM(int,"dfp_enable", dfp.dfp_enable,1);
-    READ_PARAM(int,"continuous_times", dfp.continuous_times,30);
-    READ_PARAM(double,"dirty_factor", dfp.dirty_factor,0.005);
+    READ_PARAM(int, "dfp_enable", dfp.dfp_enable, 1);
+    READ_PARAM(int, "continuous_times", dfp.continuous_times, 30);
+    READ_PARAM(double, "dirty_factor", dfp.dirty_factor, 0.005);
 
     // 创建发布者
     if (argdata_.output_pointcloud)
@@ -206,7 +289,7 @@ public:
     // 初始化SDK并设置回调
     BlueSeaLidarSDK::getInstance()->Init();
     devID = BlueSeaLidarSDK::getInstance()->AddLidar(
-        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable,argdata_.frame_package_num,sfp,dfp);
+        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable, argdata_.frame_package_num, sfp, dfp);
 
     BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata_);
     BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata_);
