@@ -137,20 +137,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
         double offset_time = p_point_data[i].offset_time;
         memcpy(&cloud.data[0] + i * 26 + 18, &offset_time, 8);
       }
-
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        // 获取时间的不同精度
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        cloud.header.stamp.sec = nanoseconds.count() / 1000000000;
-        cloud.header.stamp.nsec = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        cloud.header.stamp.sec = data->timestamp / 1000000000;
-        cloud.header.stamp.nsec = data->timestamp % 1000000000;
-      }
+      cloud.header.stamp.sec = data->timestamp / 1000000000;
+      cloud.header.stamp.nsec = data->timestamp % 1000000000;
       argdata->pub_pointcloud.publish(cloud);
     }
     if (argdata->output_custommsg)
@@ -160,19 +148,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       msg.point_num = N;
       msg.lidar_id = 0;
       msg.header.frame_id = argdata->frame_id;
-
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        msg.header.stamp.sec = nanoseconds.count() / 1000000000;
-        msg.header.stamp.nsec = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        msg.header.stamp.sec = data->timestamp / 1000000000;
-        msg.header.stamp.nsec = data->timestamp % 1000000000;
-      }
+      msg.header.stamp.sec = data->timestamp / 1000000000;
+      msg.header.stamp.nsec = data->timestamp % 1000000000;
       msg.header.seq++;
       msg.rsvd = {0, 0, 0};
       for (size_t i = 0; i < N; i++)
@@ -219,20 +196,8 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
 
       uint64_t nanosec = data->timestamp;
       imu.header.frame_id = argdata->frame_id;
-
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        imu.header.stamp.sec = nanoseconds.count() / 1000000000;
-        imu.header.stamp.nsec = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        imu.header.stamp.sec = nanosec / 1000000000;
-        imu.header.stamp.nsec = nanosec % 1000000000;
-      }
-
+      imu.header.stamp.sec = nanosec / 1000000000;
+      imu.header.stamp.nsec = nanosec % 1000000000;
       argdata->pub_imu.publish(imu);
     }
   }
@@ -297,7 +262,7 @@ int main(int argc, char **argv)
     argdata.pub_imu = nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
 
   BlueSeaLidarSDK::getInstance()->Init();
-  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port, argdata.ptp_enable, argdata.frame_package_num, sfp, dfp);
+  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port, argdata.ptp_enable, argdata.frame_package_num, argdata.timemode, sfp, dfp);
 
   BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata);
   BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata);

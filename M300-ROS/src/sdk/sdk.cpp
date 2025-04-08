@@ -155,7 +155,7 @@ void BlueSeaLidarSDK::Uninit()
 		m_lidars.at(i)->run_state = QUIT;
 	}
 }
-int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_port, int ptp_enable, int frame_package_num, ShadowsFilterParam sfp, DirtyFilterParam dfp)
+int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_port, int ptp_enable, int frame_package_num,int timemode, ShadowsFilterParam sfp, DirtyFilterParam dfp)
 {
 	RunConfig *cfg = new RunConfig;
 	cfg->lidar_ip = lidar_ip.c_str();
@@ -172,6 +172,7 @@ int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_p
 	cfg->sfp = sfp;
 	cfg->dfp = dfp;
 	cfg->frame_package_num = frame_package_num;
+	cfg->timemode = timemode;
 	m_lidars.push_back(cfg);
 	return cfg->ID;
 }
@@ -577,8 +578,9 @@ double BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarClou
 
 	point.tag = 0;
 	point.line = 0;
-	if((r != 0.0  && r< 0.035)){
-		point.tag +=128; //光学罩内的点进行标记，方便后续进行脏污判断
+	if ((r != 0.0 && r < 0.035))
+	{
+		point.tag += 128; // 光学罩内的点进行标记，方便后续进行脏污判断
 	}
 	return vertical_ang;
 }
@@ -594,7 +596,7 @@ void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, 
 		point.offset_time = packet->timestamp + i * packet->time_interval * 100.0 / (packet->dot_num - 1) - first_timestamp;
 		if (sfp.sfp_enable)
 		{
-			
+
 			// std::cout << ang <<std::endl;
 			if (ang > last_ang)
 			{
@@ -747,8 +749,17 @@ void UDPThreadProc(int id)
 							point_idx++;
 						}
 					}
-					// printf("%d %d %d\n",count,point_idx,dirt_flag);
-					dat->timestamp = cfg->frame_firstpoint_timestamp;
+					if (cfg->timemode == 1)
+					{
+					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+					  dat->timestamp = nanoseconds.count();
+					}
+					else
+					{
+					  dat->timestamp = cfg->frame_firstpoint_timestamp;
+					}
+
 					dat->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * point_idx;
 					dat->dot_num = point_idx;
 					dat->frame_cnt = cfg->frame_cnt++;
@@ -813,7 +824,16 @@ void UDPThreadProc(int id)
 					dat2->linear_acceleration_x = dat2->acc_x * cfg->imu_drift.R[0][0] + dat2->acc_y * cfg->imu_drift.R[0][1] + dat2->acc_z * cfg->imu_drift.R[0][2];
 					dat2->linear_acceleration_y = dat2->acc_x * cfg->imu_drift.R[1][0] + dat2->acc_y * cfg->imu_drift.R[1][1] + dat2->acc_z * cfg->imu_drift.R[1][2];
 					dat2->linear_acceleration_z = dat2->acc_x * cfg->imu_drift.R[2][0] + dat2->acc_y * cfg->imu_drift.R[2][1] + dat2->acc_z * cfg->imu_drift.R[2][2];
-					dat->timestamp = imu_stmp.timestamp;
+					if (cfg->timemode == 1)
+					{
+					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+					  dat->timestamp = nanoseconds.count();
+					}
+					else
+					{
+					  dat->timestamp = imu_stmp.timestamp;
+					}
 					dat->length = sizeof(LidarPacketData) + sizeof(LidarImuPointData);
 					dat->dot_num = 1;
 					dat->frame_cnt = cfg->frame_cnt;
@@ -1558,7 +1578,7 @@ int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in, std::vector<double>
 	{
 		double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
 		if (dis_i > param.effective_distance | dis_i == 0)
-				continue;
+			continue;
 		for (int y = 1; y < param.window + 1; y++)
 		{
 			int j = i + y;
@@ -1593,8 +1613,8 @@ int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in, std::vector<double>
 				}
 				// else
 				// {
-					// from = j - 1;
-					// to = i;
+				// from = j - 1;
+				// to = i;
 				// }
 
 				if (from > to)

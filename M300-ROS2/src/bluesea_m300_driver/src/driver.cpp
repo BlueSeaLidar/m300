@@ -25,7 +25,6 @@ enum PointField
   FLOAT64
 };
 
-
 using namespace std::placeholders;
 struct ArgData
 {
@@ -109,7 +108,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       cloud.row_step = cloud.width * cloud.point_step;
       cloud.data.resize(cloud.row_step * cloud.height);
 
-       for (size_t i = 0; i < data->dot_num; i++)
+      for (size_t i = 0; i < data->dot_num; i++)
       {
         memcpy(&cloud.data[0] + i * 26, &p_point_data[i].x, 4);
         memcpy(&cloud.data[0] + i * 26 + 4, &p_point_data[i].y, 4);
@@ -122,19 +121,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
         double offset_time = p_point_data[i].offset_time;
         memcpy(&cloud.data[0] + i * 26 + 18, &offset_time, 8);
       }
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        // 获取时间的不同精度
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        cloud.header.stamp.sec = nanoseconds.count() / 1000000000;
-        cloud.header.stamp.nanosec  = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        cloud.header.stamp.sec = data->timestamp / 1000000000;
-        cloud.header.stamp.nanosec  = data->timestamp % 1000000000;
-      }
+      cloud.header.stamp.sec = data->timestamp / 1000000000;
+      cloud.header.stamp.nanosec = data->timestamp % 1000000000;
 
       argdata->pub_pointcloud->publish(cloud);
     }
@@ -146,18 +134,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       msg.lidar_id = 0;
       msg.header.frame_id = argdata->frame_id;
 
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        msg.header.stamp.sec = nanoseconds.count() / 1000000000;
-        msg.header.stamp.nanosec = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        msg.header.stamp.sec = data->timestamp / 1000000000;
-        msg.header.stamp.nanosec = data->timestamp % 1000000000;
-      }
+      msg.header.stamp.sec = data->timestamp / 1000000000;
+      msg.header.stamp.nanosec = data->timestamp % 1000000000;
 
       msg.rsvd = {0, 0, 0};
       for (size_t i = 0; i < N; i++)
@@ -203,18 +181,8 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
       uint64_t nanosec = data->timestamp;
       imu.header.frame_id = argdata->frame_id;
 
-      if (argdata->timemode == 1)
-      {
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-        imu.header.stamp.sec = nanoseconds.count() / 1000000000;
-        imu.header.stamp.nanosec = nanoseconds.count() % 1000000000;
-      }
-      else
-      {
-        imu.header.stamp.sec = nanosec / 1000000000;
-        imu.header.stamp.nanosec = nanosec % 1000000000;
-      }
+      imu.header.stamp.sec = nanosec / 1000000000;
+      imu.header.stamp.nanosec = nanosec % 1000000000;
 
       argdata->pub_imu->publish(imu);
     }

@@ -9,7 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "V1.3_20250206" // SDK版本号
+#define M300_E_SDKVERSION "V1.4.1_20250407" // SDK版本号
 
 
 typedef struct
@@ -113,6 +113,7 @@ struct RunConfig
 	ShadowsFilterParam sfp ;
 	DirtyFilterParam   dfp;
 	int frame_package_num;
+	int timemode;
 };
 class BlueSeaLidarSDK
 {
@@ -138,7 +139,7 @@ public:
 	/*
 	 *	add lidar by lidar ip    lidar port    local listen port
 	 */
-	int AddLidar(std::string lidar_ip, int lidar_port, int listen_port,int ptp_enable,int frame_package_num,ShadowsFilterParam sfp,DirtyFilterParam dfp);
+	int AddLidar(std::string lidar_ip, int lidar_port, int listen_port,int ptp_enable,int frame_package_num,int timemode,ShadowsFilterParam sfp,DirtyFilterParam dfp);
 	/*
 	 *	connect lidar     send cmd/parse recvice data
 	 */
