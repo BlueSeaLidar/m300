@@ -257,7 +257,7 @@ public:
     // 初始化SDK并设置回调
     BlueSeaLidarSDK::getInstance()->Init();
     devID = BlueSeaLidarSDK::getInstance()->AddLidar(
-        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable, argdata_.frame_package_num, sfp, dfp);
+        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable, argdata_.frame_package_num,argdata_.timemode, sfp, dfp);
 
     BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata_);
     BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata_);

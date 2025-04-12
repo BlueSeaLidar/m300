@@ -659,6 +659,7 @@ void UDPThreadProc(int id)
 	std::vector<LidarCloudPointData> tmp_filter;
 	std::vector<double> tmp_ang;
 	int continuous_times = 0;
+	uint64_t frame_starttime=0; 
 	while (cfg->run_state != QUIT)
 	{
 		if (cfg->run_state == OFFLINE)
@@ -720,7 +721,19 @@ void UDPThreadProc(int id)
 
 				int count = cfg->cloud_data.size();
 				if (count == 0)
+				{
 					cfg->frame_firstpoint_timestamp = packet->timestamp;
+					if (cfg->timemode == 1)
+					{
+					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+					  frame_starttime = nanoseconds.count();
+					}
+					else
+					{
+					  frame_starttime = cfg->frame_firstpoint_timestamp;
+					}
+				}
 
 				BlueSeaLidarSDK::getInstance()->AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp);
 				count = cfg->cloud_data.size();
@@ -749,17 +762,7 @@ void UDPThreadProc(int id)
 							point_idx++;
 						}
 					}
-					if (cfg->timemode == 1)
-					{
-					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-					  dat->timestamp = nanoseconds.count();
-					}
-					else
-					{
-					  dat->timestamp = cfg->frame_firstpoint_timestamp;
-					}
-
+					dat->timestamp = frame_starttime;
 					dat->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * point_idx;
 					dat->dot_num = point_idx;
 					dat->frame_cnt = cfg->frame_cnt++;
