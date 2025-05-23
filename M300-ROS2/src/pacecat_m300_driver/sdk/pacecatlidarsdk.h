@@ -9,7 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "V1.4.1_20250407" // SDK版本号
+#define M300_E_SDKVERSION "V1.4.3_20250514" // SDK版本号
 
 
 typedef struct
@@ -112,13 +112,14 @@ struct RunConfig
 	int ptp_enable;
 	ShadowsFilterParam sfp ;
 	DirtyFilterParam   dfp;
+	MatrixRotate_2 mr_2;
 	int frame_package_num;
 	int timemode;
 };
-class BlueSeaLidarSDK
+class PaceCatLidarSDK
 {
 public:
-	static BlueSeaLidarSDK *getInstance();
+	static PaceCatLidarSDK *getInstance();
 	static void deleteInstance();
 
 	void Init();
@@ -139,7 +140,7 @@ public:
 	/*
 	 *	add lidar by lidar ip    lidar port    local listen port
 	 */
-	int AddLidar(std::string lidar_ip, int lidar_port, int listen_port,int ptp_enable,int frame_package_num,int timemode,ShadowsFilterParam sfp,DirtyFilterParam dfp);
+	int AddLidar(ArgData argdata,ShadowsFilterParam sfp,DirtyFilterParam dfp,MatrixRotate_2 mr_2);
 	/*
 	 *	connect lidar     send cmd/parse recvice data
 	 */
@@ -189,29 +190,22 @@ public:
 	 *	set lidar  firmware upgrade
 	 */
 	bool SetLidarUpgrade(int ID, std::string path);
-
-
-
 	int read_calib(const char* lidar_ip, int port);
+
 	int QueryIDByIp(std::string ip);
-	RunConfig*getConfig(int ID);
-	uint16_t Decode(uint16_t n, const uint8_t* buf, std::queue<IIM42652_FIFO_PACKET_16_ST>&imu_data/*, std::mutex &imu_mutex*/);
-	void AddPacketToList(const BlueSeaLidarEthernetPacket* bluesea, std::vector<LidarCloudPointData> &cloud_data,uint64_t first_timestamp,double &last_ang,std::vector<LidarCloudPointData> &tmp_filter,std::vector<double> &tmp_ang,ShadowsFilterParam &sfp);
-	bool firmwareUpgrade_udp(std::string  ip, int port, std::string path, std::string &error);
+	bool FirmwareUpgrade(std::string  ip, int port, std::string path, std::string& error);
+	RunConfig* GetConfig(int ID);
 protected:
 
 private:
-	double PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point);
 
 	int PackNetCmd(uint16_t type, uint16_t len, uint16_t sn, const void* buf, uint8_t* netbuf);
 	int SendNetPack(int sock, uint16_t type, uint16_t len, const void* buf, char*ip, int port);
-	
-	
-	
+
 private:
-	static BlueSeaLidarSDK *m_sdk;
-	BlueSeaLidarSDK();
-	~BlueSeaLidarSDK();
+	static PaceCatLidarSDK *m_sdk;
+	PaceCatLidarSDK();
+	~PaceCatLidarSDK();
 
 	int m_idx;
 	std::vector<RunConfig*> m_lidars;
@@ -224,11 +218,13 @@ private:
 	int m_currentframeidx{ 0 };
 	std::thread m_heartthread;
 	HeartInfo m_heartinfo;
+
+	float m_trans[3];
+	double m_rotation[3][3];
+	bool m_isSetMR{false};
 };
 
 void UDPThreadProc(int id);
-void PubCloudThreadProc(int id);
-void PubImuThreadProc(int id);
 void HeartThreadProc(HeartInfo &heartinfo);
 
 
@@ -237,6 +233,9 @@ void SendUpgradePack(unsigned int udp, const FirmwarePart* fp, char* ip, int por
 double getAngleWithViewpoint(float r1, float r2, double included_angle);
 int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in,std::vector<double> &ang_in,const ShadowsFilterParam& param,std::vector<double> &tmp_ang);
 bool isBitSet(uint8_t num, int n);
+void AddPacketToList(const BlueSeaLidarEthernetPacket* bluesea, std::vector<LidarCloudPointData>& cloud_data, uint64_t first_timestamp, double& last_ang, std::vector<LidarCloudPointData>& tmp_filter, std::vector<double>& tmp_ang, ShadowsFilterParam& sfp, MatrixRotate_2 mr_2);
+double PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData& point);
+uint16_t Decode(uint16_t n, const uint8_t* buf, std::queue<IIM42652_FIFO_PACKET_16_ST>& imu_data/*, std::mutex &imu_mutex*/);
 
 
 

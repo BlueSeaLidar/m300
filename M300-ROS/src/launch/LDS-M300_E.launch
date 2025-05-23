@@ -1,5 +1,5 @@
 <launch>
-  <node name="M300" pkg="bluesea_m300" type="bluesea_m300_node" output="screen">
+  <node name="M300" pkg="pacecat_m300" type="pacecat_m300_node" output="screen">
 
     <param name="frame_id" value="map" />
 
@@ -13,12 +13,11 @@
     <param name="output_imu" value="true"/>
    
     <param name="lidar_port" value="6543" />
-    <param name="local_port" value="6668" />
+    <param name="listen_port" value="6668" />
     <param name="lidar_ip" value="192.168.158.98" />
     <param name="ptp_enable" value="0" />
     <param name="frame_package_num" value="180" />
     <param name="timemode" value="1" />
-
 
     #sfp
     <param name="sfp_enable" value="0" />
@@ -27,8 +26,18 @@
     <param name="max_angle" value="175.0" />
     <param name="effective_distance" value="5.0" />
     #dfp
-     <param name="dfp_enable" value="0" />
+    <param name="dfp_enable" value="0" />
     <param name="continuous_times" value="30" />
     <param name="dirty_factor" value="0.01" />
+    #matrix rotate  roll/pitch/yaw: angle value(not radian value)  x/y/z:distance unit  m
+    <param name="mr_enable" value="0" />
+    <param name="roll" value="0.0" />
+    <param name="pitch" value="0.0" />
+    <param name="yaw" value="0.0" />
+    <param name="x" value="0.0" />
+    <param name="y" value="0.0" />
+    <param name="z" value="0.0" />
+
+
   </node>
 </launch>

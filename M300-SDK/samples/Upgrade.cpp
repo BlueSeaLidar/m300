@@ -1,8 +1,8 @@
-#include"../sdk/sdk.h"
-
+#include "../sdk/pacecatlidarsdk.h"
+#include"../sdk/global.h"
 
 //集成使用以下数据需在以下回调函数中加锁同步
-void LogDataCallback(uint32_t handle, const uint8_t dev_type, char* data, int len) {
+void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char* data, int len) {
 	if (data == nullptr) {
 		return;
 	}
@@ -11,9 +11,14 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, char* data, int le
 
 int main()
 {
-	char lidar_addr[] = "192.168.0.231";
-	int lidar_port = 6543;
-	int listen_port = 6668;
+	ArgData argdata;
+	char lidar_addr[] = "192.168.0.196";
+	memcpy(argdata.lidar_ip,lidar_addr,strlen(lidar_addr)+1);
+	argdata.lidar_port = 6543;
+	argdata.listen_port = 6668;
+	argdata.ptp_enable = -1;
+	argdata.frame_package_num = 180;
+	argdata.timemode=1;
 	
 
 	int ptp_enable = -1;
@@ -22,22 +27,25 @@ int main()
 	sfp.sfp_enable=0;
 	DirtyFilterParam dfp;
 	dfp.dfp_enable=0;
-
+	MatrixRotate mr;
+	mr.mr_enable=0;
+	MatrixRotate_2 mr_2;
+	setMatrixRotateParam(mr, mr_2);
 
 	//std::string  upgrade_file_path = "C:\\Users\\49535\\Desktop\\LDS-M300-E-20241029-115237.lhl";
     std::string  upgrade_file_path = "/home/pacecat/wangzn/M300-SDK/LDS-M300-E-20241029-115237.lhl";
-	BlueSeaLidarSDK::getInstance()->Init();
-	int devID = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr, lidar_port, listen_port,ptp_enable,frame_package_num,sfp,dfp);
-	BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
+	PaceCatLidarSDK::getInstance()->Init();
+	int devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata,sfp,dfp,mr_2);
+	PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
 
-	BlueSeaLidarSDK::getInstance()->ConnectLidar(devID);
+	PaceCatLidarSDK::getInstance()->ConnectLidar(devID);
 
 
-	bool ret = BlueSeaLidarSDK::getInstance()->SetLidarUpgrade(devID, upgrade_file_path);
+	bool ret = PaceCatLidarSDK::getInstance()->SetLidarUpgrade(devID, upgrade_file_path);
 	printf(" lidar upgrade %d\n", ret);
 	while (1)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
-	BlueSeaLidarSDK::getInstance()->Uninit();
+	PaceCatLidarSDK::getInstance()->Uninit();
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(bluesea_m300_driver)
+project(pacecat_m300_driver)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -9,12 +9,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(bluesea_m300_inter REQUIRED)
+find_package(pacecat_m300_inter REQUIRED)
 
-FILE(GLOB BLUESEA_SDK_SRC  "./sdk/*.cpp" "./sdk/*.h")
+FILE(GLOB PACECAT_SDK_SRC  "./sdk/*.cpp" "./sdk/*.h")
 
-add_executable(driver src/driver.cpp ${BLUESEA_SDK_SRC})
-add_executable(client src/client.cpp ${BLUESEA_SDK_SRC})
+add_executable(driver src/driver.cpp ${PACECAT_SDK_SRC})
+add_executable(client src/client.cpp ${PACECAT_SDK_SRC})
 target_include_directories(driver PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -23,13 +23,13 @@ ament_target_dependencies(
   driver
   "rclcpp"
   "sensor_msgs"
-  "bluesea_m300_inter"
+  "pacecat_m300_inter"
 )
 ament_target_dependencies(
   client
   "rclcpp"
   "sensor_msgs"
-  "bluesea_m300_inter"
+  "pacecat_m300_inter"
 )
 
 install(TARGETS driver

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>bluesea_m300</name>
+  <name>pacecat_m300</name>
   <version>0.0.0</version>
-  <description>The bluesea2 M300 package</description>
+  <description>The pacecat M300 package</description>
 
   <maintainer email="cgy@todo.todo">cgy</maintainer>
   <license>TODO</license>

@@ -3,14 +3,13 @@
     frame_id: map
     lidar_ip: 192.168.158.98
     lidar_port: 6543
-    local_port: 6668
+    listen_port: 6668
     output_custommsg: true
     output_imu: true
     output_pointcloud: true
     topic_custommsg: custommsg
     topic_imu: imu
     topic_pointcloud: pointcloud
-    use_sim_time: false
     ptp_enable: -1
     frame_package_num: 180
     timemode: 1
@@ -20,9 +19,18 @@
     min_angle: 5.0
     max_angle: 175.0
     effective_distance: 5.0
-    #dfp
+#dfp
     dfp_enable: 0
     continuous_times: 30
     dirty_factor: 0.01
+
+#matrix rotate  roll/pitch/yaw: angle value(not radian value)  x/y/z:distance unit  m
+    mr_enable: 0
+    roll: 45.0
+    pitch: 0.0
+    yaw: 0.0
+    x: 0.0
+    y: 0.0
+    z: 0.0
 
 

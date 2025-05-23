@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "bluesea_m300_inter/srv/control.hpp"
+#include "pacecat_m300_inter/srv/control.hpp"
 
 class MyNode : public rclcpp::Node
 {
@@ -7,7 +7,7 @@ public:
     MyNode() : Node("my_node")
     {
         // 创建客户端
-        control_client_ = this->create_client<bluesea_m300_inter::srv::Control>("control_service");
+        control_client_ = this->create_client<pacecat_m300_inter::srv::Control>("control_service");
 
         // 使节点在一定时间内可以等待服务的出现
         while (!control_client_->wait_for_service(std::chrono::seconds(1)))
@@ -21,10 +21,10 @@ public:
         }
     }
 
-    rclcpp::Client<bluesea_m300_inter::srv::Control>::SharedFuture send_request(const std::string &func)
+    rclcpp::Client<pacecat_m300_inter::srv::Control>::SharedFuture send_request(const std::string &func)
     {
         // 创建请求对象
-        auto request = std::make_shared<bluesea_m300_inter::srv::Control::Request>();
+        auto request = std::make_shared<pacecat_m300_inter::srv::Control::Request>();
         request->func = func;
 
         // 异步发送请求并返回 SharedFuture
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    rclcpp::Client<bluesea_m300_inter::srv::Control>::SharedPtr control_client_;
+    rclcpp::Client<pacecat_m300_inter::srv::Control>::SharedPtr control_client_;
 };
 
 int main(int argc, char **argv)

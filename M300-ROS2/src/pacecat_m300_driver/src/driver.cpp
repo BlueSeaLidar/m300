@@ -3,16 +3,16 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <sensor_msgs/point_cloud_conversion.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <std_msgs/msg/string.hpp> // 用于日志回调
+#include <std_msgs/msg/string.hpp>
 #include <memory>
 #include <string>
 #include <chrono>
 #include <thread>
-#include "bluesea_m300_inter/msg/custom_msg.hpp"
-#include "bluesea_m300_inter/msg/custom_point.hpp"
-#include "bluesea_m300_inter/srv/control.hpp"
-#include "../sdk/sdk.h" // 假设SDK头文件路径正确
-
+#include "pacecat_m300_inter/msg/custom_msg.hpp"
+#include "pacecat_m300_inter/msg/custom_point.hpp"
+#include "pacecat_m300_inter/srv/control.hpp"
+#include "../sdk/pacecatlidarsdk.h"
+#include"../sdk/global.h"
 enum PointField
 {
   INT8 = 1,
@@ -26,7 +26,7 @@ enum PointField
 };
 
 using namespace std::placeholders;
-struct ArgData
+typedef struct
 {
   std::string frame_id;
 
@@ -34,24 +34,16 @@ struct ArgData
   std::string topic_pointcloud;
   bool output_pointcloud;
 
-  rclcpp::Publisher<bluesea_m300_inter::msg::CustomMsg>::SharedPtr pub_custommsg;
+  rclcpp::Publisher<pacecat_m300_inter::msg::CustomMsg>::SharedPtr pub_custommsg;
   std::string topic_custommsg;
   bool output_custommsg;
 
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu;
   std::string topic_imu;
   bool output_imu;
+} PubTopic;
 
-  std::string lidar_ip;
-  int lidar_port;
-  int local_port;
-  int ptp_enable;
-
-  int frame_package_num;
-  int timemode;
-};
-
-void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
+void PointCloudCallback(uint32_t handle, const uint8_t dev_type, const LidarPacketData *data, void *client_data)
 {
   if (data == nullptr)
   {
@@ -62,7 +54,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
   if (data->data_type == LIDARPOINTCLOUD)
   {
     LidarCloudPointData *p_point_data = (LidarCloudPointData *)data->data;
-    ArgData *argdata = (ArgData *)client_data;
+    PubTopic *argdata = (PubTopic *)client_data;
     if (argdata->output_pointcloud)
     {
       sensor_msgs::msg::PointCloud2 cloud;
@@ -128,7 +120,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
     }
     if (argdata->output_custommsg)
     {
-      bluesea_m300_inter::msg::CustomMsg msg;
+      pacecat_m300_inter::msg::CustomMsg msg;
       uint16_t N = data->dot_num;
       msg.point_num = N;
       msg.lidar_id = 0;
@@ -140,7 +132,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       msg.rsvd = {0, 0, 0};
       for (size_t i = 0; i < N; i++)
       {
-        bluesea_m300_inter::msg::CustomPoint point;
+        pacecat_m300_inter::msg::CustomPoint point;
         point.x = p_point_data[i].x;
         point.y = p_point_data[i].y;
         point.z = p_point_data[i].z;
@@ -153,9 +145,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       argdata->pub_custommsg->publish(msg);
     }
   }
-  free(data);
 }
-void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
+void ImuDataCallback(uint32_t handle, const uint8_t dev_type, const LidarPacketData *data, void *client_data)
 {
   if (data == nullptr)
   {
@@ -165,7 +156,7 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
   //        handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
   if (data->data_type == LIDARIMUDATA)
   {
-    ArgData *argdata = (ArgData *)client_data;
+    PubTopic *argdata = (PubTopic *)client_data;
     if (argdata->output_imu)
     {
       LidarImuPointData *p_imu_data = (LidarImuPointData *)data->data;
@@ -183,14 +174,12 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
 
       imu.header.stamp.sec = nanosec / 1000000000;
       imu.header.stamp.nanosec = nanosec % 1000000000;
-
       argdata->pub_imu->publish(imu);
     }
   }
 
-  free(data);
 }
-void LogDataCallback(uint32_t handle, const uint8_t dev_type, char *data, int len)
+void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char *data, int len)
 {
   if (data == nullptr)
   {
@@ -208,22 +197,27 @@ class LidarNode : public rclcpp::Node
 {
 public:
   LidarNode()
-      : Node("lidar_m300"), argdata_{}
+      : Node("lidar_m300")
   {
     // 读取参数
-    READ_PARAM(std::string, "frame_id", argdata_.frame_id, "map");
-    READ_PARAM(std::string, "topic_pointcloud", argdata_.topic_pointcloud, "pointcloud");
-    READ_PARAM(bool, "output_pointcloud", argdata_.output_pointcloud, true);
-    READ_PARAM(std::string, "topic_custommsg", argdata_.topic_custommsg, "custommsg");
-    READ_PARAM(bool, "output_custommsg", argdata_.output_custommsg, true);
-    READ_PARAM(std::string, "topic_imu", argdata_.topic_imu, "imu");
-    READ_PARAM(bool, "output_imu", argdata_.output_imu, true);
-    READ_PARAM(std::string, "lidar_ip", argdata_.lidar_ip, "192.168.158.98");
-    READ_PARAM(int, "lidar_port", argdata_.lidar_port, 6668);
-    READ_PARAM(int, "local_port", argdata_.local_port, 6668);
-    READ_PARAM(int, "ptp_enable", argdata_.ptp_enable, -1);
-    READ_PARAM(int, "frame_package_num", argdata_.frame_package_num, 180);
-    READ_PARAM(int, "timemode", argdata_.timemode, 1);
+    //PubTopic pubtopic;
+    READ_PARAM(std::string, "frame_id", pubtopic.frame_id, "map");
+    READ_PARAM(std::string, "topic_pointcloud", pubtopic.topic_pointcloud, "pointcloud");
+    READ_PARAM(bool, "output_pointcloud", pubtopic.output_pointcloud, true);
+    READ_PARAM(std::string, "topic_custommsg", pubtopic.topic_custommsg, "custommsg");
+    READ_PARAM(bool, "output_custommsg", pubtopic.output_custommsg, true);
+    READ_PARAM(std::string, "topic_imu", pubtopic.topic_imu, "imu");
+    READ_PARAM(bool, "output_imu", pubtopic.output_imu, true);
+
+    ArgData argdata={0};
+    std::string lidarip;
+    READ_PARAM(std::string, "lidar_ip", lidarip, "192.168.158.98");
+    memcpy(argdata.lidar_ip, lidarip.c_str(), lidarip.length());
+    READ_PARAM(int, "lidar_port", argdata.lidar_port, 6543);
+    READ_PARAM(int, "local_port", argdata.listen_port, 6668);
+    READ_PARAM(int, "ptp_enable", argdata.ptp_enable, -1);
+    READ_PARAM(int, "frame_package_num", argdata.frame_package_num, 180);
+    READ_PARAM(int, "timemode", argdata.timemode, 1);
 
     ShadowsFilterParam sfp;
     READ_PARAM(int, "sfp_enable", sfp.sfp_enable, 1);
@@ -237,51 +231,62 @@ public:
     READ_PARAM(int, "continuous_times", dfp.continuous_times, 30);
     READ_PARAM(double, "dirty_factor", dfp.dirty_factor, 0.005);
 
+    MatrixRotate mr;
+    READ_PARAM(int,"mr_enable", mr.mr_enable, 0);
+    READ_PARAM(float,"roll", mr.roll, static_cast<float>(0.0));
+    READ_PARAM(float,"pitch", mr.pitch, static_cast<float>(0.0));
+    READ_PARAM(float,"yaw", mr.yaw, static_cast<float>(0.0));
+    READ_PARAM(float,"x", mr.x, static_cast<float>(0.0));
+    READ_PARAM(float,"y", mr.y, static_cast<float>(0.0));
+    READ_PARAM(float,"z", mr.z, static_cast<float>(0.0));
+    MatrixRotate_2 mr_2;
+    setMatrixRotateParam(mr, mr_2);
+
     // 创建发布者
-    if (argdata_.output_pointcloud)
+    if (pubtopic.output_pointcloud)
     {
-      argdata_.pub_pointcloud = create_publisher<sensor_msgs::msg::PointCloud2>(
-          argdata_.topic_pointcloud, 10);
+      pubtopic.pub_pointcloud = create_publisher<sensor_msgs::msg::PointCloud2>(
+          pubtopic.topic_pointcloud, 10);
     }
-    if (argdata_.output_custommsg)
+    if (pubtopic.output_custommsg)
     {
-      argdata_.pub_custommsg = create_publisher<bluesea_m300_inter::msg::CustomMsg>(
-          argdata_.topic_custommsg, 10);
+      pubtopic.pub_custommsg = create_publisher<pacecat_m300_inter::msg::CustomMsg>(
+          pubtopic.topic_custommsg, 10);
     }
-    if (argdata_.output_imu)
+    if (pubtopic.output_imu)
     {
-      argdata_.pub_imu = create_publisher<sensor_msgs::msg::Imu>(
-          argdata_.topic_imu, 10);
+      pubtopic.pub_imu = create_publisher<sensor_msgs::msg::Imu>(
+          pubtopic.topic_imu, 10);
     }
 
     // 初始化SDK并设置回调
-    BlueSeaLidarSDK::getInstance()->Init();
-    devID = BlueSeaLidarSDK::getInstance()->AddLidar(
-        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable, argdata_.frame_package_num,argdata_.timemode, sfp, dfp);
+    PaceCatLidarSDK::getInstance()->Init();
+    devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata, sfp, dfp,mr_2);
 
-    BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata_);
-    BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata_);
-    BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
+    PaceCatLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &pubtopic);
+    PaceCatLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &pubtopic);
+    PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
 
     // 连接激光雷达（可能需要循环直到成功）
-    // while (BlueSeaLidarSDK::getInstance()->read_calib(
+    // while (PaceCatLidarSDK::getInstance()->read_calib(
     //            argdata_.lidar_ip.c_str(), argdata_.lidar_port) != 0)
-    while (BlueSeaLidarSDK::getInstance()->read_calib(
-               argdata_.lidar_ip.c_str(), argdata_.lidar_port) != 0)
+    while (PaceCatLidarSDK::getInstance()->read_calib(
+               argdata.lidar_ip, argdata.lidar_port) != 0)
     {
       RCLCPP_INFO(this->get_logger(), "Waiting for lidar calibration...");
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    BlueSeaLidarSDK::getInstance()->ConnectLidar(devID);
+    PaceCatLidarSDK::getInstance()->ConnectLidar(devID);
     // 创建服务端
-    service = this->create_service<bluesea_m300_inter::srv::Control>("scan_conntrol", std::bind(&LidarNode::control, this, _1, _2));
+    service = this->create_service<pacecat_m300_inter::srv::Control>("scan_conntrol", std::bind(&LidarNode::control, this, _1, _2));
   }
 
 private:
-  rclcpp::Service<bluesea_m300_inter::srv::Control>::SharedPtr service;
-  ArgData argdata_;
+  rclcpp::Service<pacecat_m300_inter::srv::Control>::SharedPtr service;
+  //ArgData argdata;
+  PubTopic pubtopic;
   int devID;
-  void control(const bluesea_m300_inter::srv::Control::Request::SharedPtr req, const bluesea_m300_inter::srv::Control::Response::SharedPtr res)
+  void control(const pacecat_m300_inter::srv::Control::Request::SharedPtr req, const pacecat_m300_inter::srv::Control::Response::SharedPtr res)
   {
     LidarAction action = LidarAction::NONE;
 
@@ -294,7 +299,7 @@ private:
       action = LidarAction::STOP;
     }
     RCLCPP_INFO(this->get_logger(), "set lidar action: %s", req->func.c_str());
-    res->code = BlueSeaLidarSDK::getInstance()->SetLidarAction(devID, action);
+    res->code = PaceCatLidarSDK::getInstance()->SetLidarAction(devID, action);
     if (res->code <= 0)
       res->value = "faild";
     else if (res->code == 1)

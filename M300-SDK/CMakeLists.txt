@@ -46,10 +46,10 @@ set(CMAKE_CONFIGURATION_TYPES Debug)
 #所有的头文件目录
 include_directories ("${PROJECT_SOURCE_DIR}/sdk")
 include_directories ("${PROJECT_SOURCE_DIR}/samples")
+include_directories ("${PROJECT_SOURCE_DIR}/3rdparty")
 #加载指定目录下的指定格式文件集
 file(GLOB_RECURSE SOURCE_FILES ${PROJECT_SOURCE_DIR}/sdk/*.cpp  ${PROJECT_SOURCE_DIR}/sdk/*.c  )
-file(GLOB_RECURSE HEADER_FILES  ${PROJECT_SOURCE_DIR}/sdk/*.h  ${PROJECT_SOURCE_DIR}/sdk/*.hpp)
-
+file(GLOB_RECURSE HEADER_FILES  ${PROJECT_SOURCE_DIR}/sdk/*.h  ${PROJECT_SOURCE_DIR}/sdk/*.hpp ${PROJECT_SOURCE_DIR}/3rdparty/readerwriterqueue/*.h  ${PROJECT_SOURCE_DIR}/3rdparty/readerwriterqueue/*.hpp)
 IF (UNIX)
   #加载指定目录下需要删除的指定格式文件集
   #file(GLOB_RECURSE REMOVE_SOURCES  "${PROJECT_SOURCE_DIR}/sdk/service/LidarCheckService_win32.cpp")

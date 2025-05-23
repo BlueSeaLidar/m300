@@ -1,21 +1,69 @@
 ﻿// M300_SDK.cpp: 定义应用程序的入口点。
 //
-#include "sdk.h"
-#include "global.h"
 #include <fstream>
+#include<chrono>
+#include "global.h"
+#include "pacecatlidarsdk.h"
 #ifdef _WIN32
 #pragma warning(disable : 4996)
 #pragma warning(disable : 4244)
 #endif
-#define M_PI 3.14159265358979323846
 
-BlueSeaLidarSDK *BlueSeaLidarSDK::m_sdk = new (std::nothrow) BlueSeaLidarSDK();
-BlueSeaLidarSDK *BlueSeaLidarSDK::getInstance()
+#include <iostream>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+std::string GetCurrentTimeStamp(int time_stamp_type = 0) {
+	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+
+	std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
+	std::tm* now_tm = std::localtime(&now_time_t);
+	char buffer[128];
+	strftime(buffer, sizeof(buffer), "%F %T", now_tm);
+
+	std::ostringstream ss;
+	ss.fill('0');
+
+	std::chrono::milliseconds ms;
+	std::chrono::microseconds cs;
+	std::chrono::nanoseconds ns;
+	switch (time_stamp_type) {
+	case 0:
+		ss << buffer;
+		break;
+	case 1:
+		ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+		ss << buffer << ":" << ms.count();
+		break;
+	case 2:
+		ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+		cs = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()) % 1000000;
+		ss << buffer << ":" << ms.count() << ":" << cs.count() % 1000;
+		break;
+	case 3:
+		ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+		cs = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()) % 1000000;
+		ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()) % 1000000000;
+		ss << buffer << ":" << ms.count() << ":" << cs.count() % 1000 << ":" << ns.count() % 1000;
+		break;
+	default:
+		ss << buffer;
+		break;
+	}
+	return ss.str();
+}
+
+
+
+
+
+PaceCatLidarSDK *PaceCatLidarSDK::m_sdk = new (std::nothrow) PaceCatLidarSDK();
+PaceCatLidarSDK *PaceCatLidarSDK::getInstance()
 {
 	return m_sdk;
 }
 
-void BlueSeaLidarSDK::deleteInstance()
+void PaceCatLidarSDK::deleteInstance()
 {
 	if (m_sdk)
 	{
@@ -23,14 +71,14 @@ void BlueSeaLidarSDK::deleteInstance()
 		m_sdk = NULL;
 	}
 }
-BlueSeaLidarSDK::BlueSeaLidarSDK()
+PaceCatLidarSDK::PaceCatLidarSDK()
 {
 }
 
-BlueSeaLidarSDK::~BlueSeaLidarSDK()
+PaceCatLidarSDK::~PaceCatLidarSDK()
 {
 }
-bool BlueSeaLidarSDK::SetPointCloudCallback(int ID, LidarCloudPointCallback cb, void *client_data)
+bool PaceCatLidarSDK::SetPointCloudCallback(int ID, LidarCloudPointCallback cb, void *client_data)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -48,7 +96,7 @@ bool BlueSeaLidarSDK::SetPointCloudCallback(int ID, LidarCloudPointCallback cb, 
 	lidar->cloudpoint = client_data;
 	return true;
 }
-bool BlueSeaLidarSDK::SetImuDataCallback(int ID, LidarImuDataCallback cb, void *client_data)
+bool PaceCatLidarSDK::SetImuDataCallback(int ID, LidarImuDataCallback cb, void *client_data)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -66,7 +114,7 @@ bool BlueSeaLidarSDK::SetImuDataCallback(int ID, LidarImuDataCallback cb, void *
 	lidar->imudata = (char *)client_data;
 	return true;
 }
-bool BlueSeaLidarSDK::SetLogDataCallback(int ID, LidarLogDataCallback cb, void *client_data)
+bool PaceCatLidarSDK::SetLogDataCallback(int ID, LidarLogDataCallback cb, void *client_data)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -85,7 +133,7 @@ bool BlueSeaLidarSDK::SetLogDataCallback(int ID, LidarLogDataCallback cb, void *
 	return true;
 }
 
-void BlueSeaLidarSDK::WritePointCloud(int ID, const uint8_t dev_type, LidarPacketData *data)
+void PaceCatLidarSDK::WritePointCloud(int ID, const uint8_t dev_type, LidarPacketData *data)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -104,7 +152,7 @@ void BlueSeaLidarSDK::WritePointCloud(int ID, const uint8_t dev_type, LidarPacke
 		free(data);
 }
 
-void BlueSeaLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketData *data)
+void PaceCatLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketData *data)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -123,7 +171,7 @@ void BlueSeaLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketDa
 		free(data);
 }
 
-void BlueSeaLidarSDK::WriteLogData(int ID, const uint8_t dev_type, char *data, int len)
+void PaceCatLidarSDK::WriteLogData(int ID, const uint8_t dev_type, char *data, int len)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -140,7 +188,7 @@ void BlueSeaLidarSDK::WriteLogData(int ID, const uint8_t dev_type, char *data, i
 		lidar->cb_logdata(ID, dev_type, data, len);
 }
 
-void BlueSeaLidarSDK::Init()
+void PaceCatLidarSDK::Init()
 {
 	// Conflict with ros's single-process framework, temporarily disabled
 	m_heartinfo.code = 0;
@@ -148,19 +196,19 @@ void BlueSeaLidarSDK::Init()
 	m_heartthread = std::thread(HeartThreadProc, std::ref(m_heartinfo));
 	m_heartthread.detach();
 }
-void BlueSeaLidarSDK::Uninit()
+void PaceCatLidarSDK::Uninit()
 {
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
 	{
 		m_lidars.at(i)->run_state = QUIT;
 	}
 }
-int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_port, int ptp_enable, int frame_package_num,int timemode, ShadowsFilterParam sfp, DirtyFilterParam dfp)
+int PaceCatLidarSDK::AddLidar(ArgData argdata, ShadowsFilterParam sfp, DirtyFilterParam dfp, MatrixRotate_2 mr_2)
 {
 	RunConfig *cfg = new RunConfig;
-	cfg->lidar_ip = lidar_ip.c_str();
-	cfg->lidar_port = lidar_port;
-	cfg->listen_port = listen_port;
+	cfg->lidar_ip = argdata.lidar_ip;
+	cfg->lidar_port = argdata.lidar_port;
+	cfg->listen_port = argdata.listen_port;
 	cfg->ID = m_lidars.size();
 	cfg->run_state = ONLINE;
 	cfg->frame_cnt = 0;
@@ -168,15 +216,16 @@ int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_p
 	cfg->cb_imudata = NULL;
 	cfg->cb_logdata = NULL;
 	cfg->frame_firstpoint_timestamp = 0;
-	cfg->ptp_enable = ptp_enable;
+	cfg->ptp_enable = argdata.ptp_enable;
 	cfg->sfp = sfp;
 	cfg->dfp = dfp;
-	cfg->frame_package_num = frame_package_num;
-	cfg->timemode = timemode;
+	cfg->frame_package_num = argdata.frame_package_num;
+	cfg->timemode = argdata.timemode;
+	cfg->mr_2 = mr_2;
 	m_lidars.push_back(cfg);
 	return cfg->ID;
 }
-bool BlueSeaLidarSDK::ConnectLidar(int ID)
+bool PaceCatLidarSDK::ConnectLidar(int ID)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -200,7 +249,7 @@ bool BlueSeaLidarSDK::ConnectLidar(int ID)
 	// lidar->thread_pubImu.detach();
 	return true;
 }
-bool BlueSeaLidarSDK::DisconnectLidar(int ID)
+bool PaceCatLidarSDK::DisconnectLidar(int ID)
 {
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
 	{
@@ -213,7 +262,7 @@ bool BlueSeaLidarSDK::DisconnectLidar(int ID)
 	return false;
 }
 
-bool BlueSeaLidarSDK::QueryBaseInfo(int ID, BaseInfo &info)
+bool PaceCatLidarSDK::QueryBaseInfo(int ID, BaseInfo &info)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -267,7 +316,7 @@ bool BlueSeaLidarSDK::QueryBaseInfo(int ID, BaseInfo &info)
 	}
 	return false;
 }
-bool BlueSeaLidarSDK::QueryVersion(int ID, VersionInfo &info)
+bool PaceCatLidarSDK::QueryVersion(int ID, VersionInfo &info)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -314,7 +363,7 @@ bool BlueSeaLidarSDK::QueryVersion(int ID, VersionInfo &info)
 	}
 	return false;
 }
-int BlueSeaLidarSDK::QueryDeviceState(int ID)
+int PaceCatLidarSDK::QueryDeviceState(int ID)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -340,7 +389,7 @@ int BlueSeaLidarSDK::QueryDeviceState(int ID)
 	return OFFLINE;
 }
 
-bool BlueSeaLidarSDK::SetLidarNetWork(int ID, std::string ip, std::string mask, std::string gateway, uint16_t port)
+bool PaceCatLidarSDK::SetLidarNetWork(int ID, std::string ip, std::string mask, std::string gateway, uint16_t port)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -380,7 +429,7 @@ bool BlueSeaLidarSDK::SetLidarNetWork(int ID, std::string ip, std::string mask, 
 	return true;
 }
 
-bool BlueSeaLidarSDK::SetLidarUploadNetWork(int ID, std::string upload_ip, uint16_t upload_port)
+bool PaceCatLidarSDK::SetLidarUploadNetWork(int ID, std::string upload_ip, uint16_t upload_port)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -421,7 +470,7 @@ bool BlueSeaLidarSDK::SetLidarUploadNetWork(int ID, std::string upload_ip, uint1
 	return false;
 }
 
-bool BlueSeaLidarSDK::SetLidarUploadFix(int ID, bool isfix)
+bool PaceCatLidarSDK::SetLidarUploadFix(int ID, bool isfix)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -456,7 +505,7 @@ bool BlueSeaLidarSDK::SetLidarUploadFix(int ID, bool isfix)
 	return false;
 }
 
-bool BlueSeaLidarSDK::SetLidarAction(int ID, int action)
+bool PaceCatLidarSDK::SetLidarAction(int ID, int action)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -495,7 +544,7 @@ bool BlueSeaLidarSDK::SetLidarAction(int ID, int action)
 	return false;
 }
 
-bool BlueSeaLidarSDK::SetLidarUpgrade(int ID, std::string path)
+bool PaceCatLidarSDK::SetLidarUpgrade(int ID, std::string path)
 {
 	RunConfig *lidar = NULL;
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -535,7 +584,7 @@ bool BlueSeaLidarSDK::SetLidarUpgrade(int ID, std::string path)
 	return false;
 }
 
-int BlueSeaLidarSDK::QueryIDByIp(std::string ip)
+int PaceCatLidarSDK::QueryIDByIp(std::string ip)
 {
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
 	{
@@ -547,7 +596,7 @@ int BlueSeaLidarSDK::QueryIDByIp(std::string ip)
 	return -1;
 }
 
-RunConfig *BlueSeaLidarSDK::getConfig(int ID)
+RunConfig *PaceCatLidarSDK::GetConfig(int ID)
 {
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
 	{
@@ -558,7 +607,7 @@ RunConfig *BlueSeaLidarSDK::getConfig(int ID)
 	}
 	return nullptr;
 }
-double BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point)
+double PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point)
 {
 	point.reflectivity = bluesea.reflectivity;
 
@@ -584,8 +633,9 @@ double BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarClou
 	}
 	return vertical_ang;
 }
+
 // int tmp2=0;
-void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<LidarCloudPointData> &cloud_data, uint64_t first_timestamp, double &last_ang, std::vector<LidarCloudPointData> &tmp_filter, std::vector<double> &tmp_ang, ShadowsFilterParam &sfp)
+void AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<LidarCloudPointData> &cloud_data, uint64_t first_timestamp, double &last_ang, std::vector<LidarCloudPointData> &tmp_filter, std::vector<double> &tmp_ang, ShadowsFilterParam &sfp, MatrixRotate_2 mr_2)
 {
 	std::vector<LidarCloudPointData> tmp;
 	BlueSeaLidarSpherPoint *data = (BlueSeaLidarSpherPoint *)packet->data;
@@ -593,10 +643,17 @@ void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, 
 	{
 		LidarCloudPointData point;
 		double ang = PacketToPoints(data[i], point);
+		// todo  将点转置
+		if(mr_2.mr_enable)
+		{
+			point.x = point.x*mr_2.rotation[0][0]+point.y*mr_2.rotation[0][1]+point.z*mr_2.rotation[0][2]+mr_2.trans[0];
+			point.y = point.x*mr_2.rotation[1][0]+point.y*mr_2.rotation[1][1]+point.z*mr_2.rotation[1][2]+mr_2.trans[1];
+			point.z = point.x*mr_2.rotation[2][0]+point.y*mr_2.rotation[2][1]+point.z*mr_2.rotation[2][2]+mr_2.trans[2];
+
+		}
 		point.offset_time = packet->timestamp + i * packet->time_interval * 100.0 / (packet->dot_num - 1) - first_timestamp;
 		if (sfp.sfp_enable)
 		{
-
 			// std::cout << ang <<std::endl;
 			if (ang > last_ang)
 			{
@@ -627,13 +684,12 @@ void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, 
 
 void UDPThreadProc(int id)
 {
-	RunConfig *cfg = BlueSeaLidarSDK::getInstance()->getConfig(id);
-
+	RunConfig *cfg = PaceCatLidarSDK::getInstance()->GetConfig(id);
 	int fd = SystemAPI::open_socket_port(cfg->listen_port, false);
 	if (fd <= 0)
 	{
 		std::string err = "listen port open failed";
-		BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+		PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 		return;
 	}
 	CommunicationAPI::send_cmd_udp(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, 0x0043, rand(), 6, "LUUIDH");
@@ -646,10 +702,9 @@ void UDPThreadProc(int id)
 		{
 
 			std::string err = "time: " + SystemAPI::getCurrentTime() + " set " + cmd + "  " + tmpresult;
-			BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+			PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 		}
 	}
-
 	uint16_t wait_idx = 0;
 	uint8_t bluesea_idx = 0;
 	uint16_t nlen = 0;
@@ -659,7 +714,15 @@ void UDPThreadProc(int id)
 	std::vector<LidarCloudPointData> tmp_filter;
 	std::vector<double> tmp_ang;
 	int continuous_times = 0;
-	uint64_t frame_starttime=0; 
+	uint64_t frame_starttime = 0;
+	//save one frame pointcloud data
+	LidarPacketData* pointclouddata = (LidarPacketData*)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * cfg->frame_package_num*128);
+	//save one packet imudata
+	LidarPacketData* imudata = (LidarPacketData*)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
+
+	//int g_num = 0;
+	//std::cout << 111 << GetCurrentTimeStamp(3) << std::endl; // 纳秒级时间戳
+
 	while (cfg->run_state != QUIT)
 	{
 		if (cfg->run_state == OFFLINE)
@@ -674,18 +737,6 @@ void UDPThreadProc(int id)
 		int dw = recvfrom(fd, (char *)&buf, sizeof(buf), 0, (struct sockaddr *)&addr, &sz);
 		if (dw > 0 && (strcmp((char *)inet_ntoa(addr.sin_addr), cfg->lidar_ip.c_str()) == 0))
 		{
-			//  time syn
-			// SystemAPI::GetTimeStamp(&tv, false);
-			// if (tv.tv_sec > tto)
-			//{
-			//	KeepAlive alive;
-			//	SystemAPI::GetTimeStamp(&tv, false);
-			//	alive.world_clock = (tv.tv_sec % 3600) * 1000 + tv.tv_usec / 1000;
-			//	alive.delay = 0;
-			//	// acknowlege device
-			//	CommunicationAPI::send_cmd_udp(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, 0x4b41, rand(), sizeof(alive), &alive);
-			//	tto = tv.tv_sec + 1;
-			//}
 			if (buf[0] == 0 || buf[0] == 1)
 			{
 				// 判定是否是数据包
@@ -694,7 +745,7 @@ void UDPThreadProc(int id)
 				if (dw != packet_size)
 				{
 					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet length error: " + std::to_string(dw) + "  " + std::to_string(packet_size);
-					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 				}
 
 				if (packet->version == 1)
@@ -702,20 +753,20 @@ void UDPThreadProc(int id)
 					if (packet->rt_v1.tags & TAG_MIRROR_NOT_STABLE)
 					{
 						std::string err = "time: " + SystemAPI::getCurrentTime() + " mirror " + std::to_string(packet->rt_v1.mirror_rpm);
-						BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+						PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 					}
 
 					if (packet->rt_v1.tags & TAG_MOTOR_NOT_STABLE)
 					{
 						std::string err = "time: " + SystemAPI::getCurrentTime() + " main motor " + std::to_string(packet->rt_v1.motor_rpm_x10 / 10.0);
-						BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+						PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 					}
 				}
 
 				if (packet->udp_cnt != bluesea_idx)
 				{
 					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet lost :last " + std::to_string(packet->udp_cnt) + " now: " + std::to_string(bluesea_idx);
-					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
+					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 				}
 				bluesea_idx = packet->udp_cnt + 1;
 
@@ -725,27 +776,26 @@ void UDPThreadProc(int id)
 					cfg->frame_firstpoint_timestamp = packet->timestamp;
 					if (cfg->timemode == 1)
 					{
-					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-					  frame_starttime = nanoseconds.count();
+						std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+						std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+						frame_starttime = nanoseconds.count();
 					}
 					else
 					{
-					  frame_starttime = cfg->frame_firstpoint_timestamp;
+						frame_starttime = cfg->frame_firstpoint_timestamp;
 					}
 				}
-
-				BlueSeaLidarSDK::getInstance()->AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp);
+				AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp,cfg->mr_2);
 				count = cfg->cloud_data.size();
-				if (cfg->frame_package_num < 40)
+				if (cfg->frame_package_num < 80)
 				{
 					std::string err = "time: " + SystemAPI::getCurrentTime() + "too few point in one frame " + std::to_string(cfg->frame_package_num);
-					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 				}
 				if (count >= cfg->frame_package_num * 128)
 				{
-					LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count);
-					LidarCloudPointData *dat2 = (LidarCloudPointData *)dat->data;
+					//LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count);
+					LidarCloudPointData *dat2 = (LidarCloudPointData *)pointclouddata->data;
 					struct timeval tv;
 					SystemAPI::GetTimeStamp(&tv, true);
 
@@ -762,11 +812,11 @@ void UDPThreadProc(int id)
 							point_idx++;
 						}
 					}
-					dat->timestamp = frame_starttime;
-					dat->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * point_idx;
-					dat->dot_num = point_idx;
-					dat->frame_cnt = cfg->frame_cnt++;
-					dat->data_type = LIDARPOINTCLOUD;
+					pointclouddata->timestamp = frame_starttime;
+					pointclouddata->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * point_idx;
+					pointclouddata->dot_num = point_idx;
+					pointclouddata->frame_cnt = cfg->frame_cnt++;
+					pointclouddata->data_type = LIDARPOINTCLOUD;
 
 					if (cfg->dfp.dfp_enable)
 					{
@@ -776,7 +826,7 @@ void UDPThreadProc(int id)
 							if (continuous_times > cfg->dfp.continuous_times)
 							{
 								std::string err = "time: " + SystemAPI::getCurrentTime() + "Perhaps there is dirt or obstruction on the optical cover ! The tag points num:" + std::to_string(dirt_flag);
-								BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+								PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 							}
 						}
 						else
@@ -784,7 +834,8 @@ void UDPThreadProc(int id)
 							continuous_times = 0;
 						}
 					}
-					BlueSeaLidarSDK::getInstance()->WritePointCloud(cfg->ID, 0, dat);
+					PaceCatLidarSDK::getInstance()->WritePointCloud(cfg->ID, 0, pointclouddata);
+					memset(pointclouddata, 0, sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * cfg->frame_package_num * 128);
 					cfg->cloud_data.clear();
 					// std::cout<<point_idx<<std::endl;
 				}
@@ -795,14 +846,14 @@ void UDPThreadProc(int id)
 				if (trans->idx != wait_idx)
 				{
 					std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string(trans->idx) + " now: " + std::to_string(wait_idx);
-					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
+					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 				}
 
 				memcpy(buffer + nlen, trans->data, trans->len);
 				nlen += trans->len;
 				wait_idx = trans->idx + 1;
 
-				uint16_t n = BlueSeaLidarSDK::getInstance()->Decode(nlen, buffer, cfg->imu_data /*, cfg->imu_mutex*/);
+				uint16_t n = Decode(nlen, buffer, cfg->imu_data /*, cfg->imu_mutex*/);
 				for (int i = 0; i < nlen - n; i++)
 				{
 					buffer[i] = buffer[n + i];
@@ -812,8 +863,8 @@ void UDPThreadProc(int id)
 				{
 					IIM42652_FIFO_PACKET_16_ST imu_stmp = cfg->imu_data.front();
 					cfg->imu_data.pop();
-					LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
-					LidarImuPointData *dat2 = (LidarImuPointData *)dat->data;
+					//LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
+					LidarImuPointData *dat2 = (LidarImuPointData *)imudata->data;
 
 					dat2->gyro_x = imu_stmp.Gyro_X * 4000.0 / 0x10000 * M_PI / 180 + cfg->imu_drift.Gyro[0];
 					dat2->gyro_y = imu_stmp.Gyro_Y * 4000.0 / 0x10000 * M_PI / 180 + cfg->imu_drift.Gyro[1];
@@ -829,19 +880,20 @@ void UDPThreadProc(int id)
 					dat2->linear_acceleration_z = dat2->acc_x * cfg->imu_drift.R[2][0] + dat2->acc_y * cfg->imu_drift.R[2][1] + dat2->acc_z * cfg->imu_drift.R[2][2];
 					if (cfg->timemode == 1)
 					{
-					  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-					  std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
-					  dat->timestamp = nanoseconds.count();
+						std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+						std::chrono::nanoseconds nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+						imudata->timestamp = nanoseconds.count();
 					}
 					else
 					{
-					  dat->timestamp = imu_stmp.timestamp;
+						imudata->timestamp = imu_stmp.timestamp;
 					}
-					dat->length = sizeof(LidarPacketData) + sizeof(LidarImuPointData);
-					dat->dot_num = 1;
-					dat->frame_cnt = cfg->frame_cnt;
-					dat->data_type = LIDARIMUDATA;
-					BlueSeaLidarSDK::getInstance()->WriteImuData(cfg->ID, 0, dat);
+					imudata->length = sizeof(LidarPacketData) + sizeof(LidarImuPointData);
+					imudata->dot_num = 1;
+					imudata->frame_cnt = cfg->frame_cnt;
+					imudata->data_type = LIDARIMUDATA;
+					PaceCatLidarSDK::getInstance()->WriteImuData(cfg->ID, 0, imudata);
+					memset(imudata, 0, sizeof(sizeof(LidarPacketData) + sizeof(LidarImuPointData)));
 				}
 			}
 			else if (buf[0] == 0xfa && buf[1] == 0x89)
@@ -865,6 +917,12 @@ void UDPThreadProc(int id)
 					   ptr[0], ptr[1], ptr[2], ptr[3],
 					   ptr[4], ptr[5], ptr[6], ptr[7]);
 			}
+			//if (g_num == 1000)
+			//{
+			//	std::cout << 222 << GetCurrentTimeStamp(3) << std::endl; // 纳秒级时间戳
+			//	g_num = 0;
+			//}
+
 		}
 		switch (cfg->action)
 		{
@@ -944,7 +1002,7 @@ void UDPThreadProc(int id)
 		}
 		case UPGRADE:
 		{
-			bool ret = BlueSeaLidarSDK::getInstance()->firmwareUpgrade_udp(cfg->lidar_ip.c_str(), cfg->lidar_port, cfg->send_buf, cfg->recv_buf);
+			bool ret = PaceCatLidarSDK::getInstance()->FirmwareUpgrade(cfg->lidar_ip.c_str(), cfg->lidar_port, cfg->send_buf, cfg->recv_buf);
 			cfg->recv_len = cfg->recv_buf.size();
 			if (ret)
 			{
@@ -957,14 +1015,15 @@ void UDPThreadProc(int id)
 		}
 	}
 	SystemAPI::closefd(fd, true);
-
+	free(pointclouddata);
+	free(imudata);
 	std::string err = "thread sub end";
-	BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_DEBUG, (char *)err.c_str(), err.size());
+	PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_DEBUG, (char *)err.c_str(), err.size());
 }
 
 // void PubCloudThreadProc(int id)
 // {
-// 	RunConfig *cfg = BlueSeaLidarSDK::getInstance()->getConfig(id);
+// 	RunConfig *cfg = PaceCatLidarSDK::getInstance()->GetConfig(id);
 
 // 	while (cfg->run_state != QUIT)
 // 	{
@@ -993,7 +1052,7 @@ void UDPThreadProc(int id)
 // 			dat->frame_cnt = cfg->frame_cnt++;
 // 			dat->data_type = LIDARPOINTCLOUD;
 
-// 			BlueSeaLidarSDK::getInstance()->WritePointCloud(cfg->ID, 0, dat);
+// 			PaceCatLidarSDK::getInstance()->WritePointCloud(cfg->ID, 0, dat);
 // 			cfg->cloud_data.clear();
 
 // 			if (cfg->cloud_data_cache.size() >= 0)
@@ -1012,7 +1071,7 @@ void UDPThreadProc(int id)
 
 // void PubImuThreadProc(int id)
 // {
-// 	RunConfig *cfg = BlueSeaLidarSDK::getInstance()->getConfig(id);
+// 	RunConfig *cfg = PaceCatLidarSDK::getInstance()->GetConfig(id);
 // 	while (cfg->run_state != QUIT)
 // 	{
 // 		if (cfg->run_state == OFFLINE)
@@ -1048,7 +1107,7 @@ void UDPThreadProc(int id)
 // 			dat->dot_num = 1;
 // 			dat->frame_cnt = cfg->frame_cnt;
 // 			dat->data_type = LIDARIMUDATA;
-// 			BlueSeaLidarSDK::getInstance()->WriteImuData(cfg->ID, 0, dat);
+// 			PaceCatLidarSDK::getInstance()->WriteImuData(cfg->ID, 0, dat);
 
 // 			// printf("%f  %f  %lf\n",dat2->gyro_x,dat2->linear_acceleration_x,cfg->imu_drift.Gyro[0]);
 // 			// std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -1058,7 +1117,7 @@ void UDPThreadProc(int id)
 // 	}
 // }
 
-uint16_t BlueSeaLidarSDK::Decode(uint16_t n, const uint8_t *buf, std::queue<IIM42652_FIFO_PACKET_16_ST> &imu_data /*, std::mutex &imu_mutex*/)
+uint16_t Decode(uint16_t n, const uint8_t *buf, std::queue<IIM42652_FIFO_PACKET_16_ST> &imu_data /*, std::mutex &imu_mutex*/)
 {
 	uint16_t idx = 0;
 	int ndrop = 0;
@@ -1117,7 +1176,7 @@ uint16_t BlueSeaLidarSDK::Decode(uint16_t n, const uint8_t *buf, std::queue<IIM4
 	return idx;
 }
 
-int BlueSeaLidarSDK::PackNetCmd(uint16_t type, uint16_t len, uint16_t sn, const void *buf, uint8_t *netbuf)
+int PaceCatLidarSDK::PackNetCmd(uint16_t type, uint16_t len, uint16_t sn, const void *buf, uint8_t *netbuf)
 {
 	CmdHeader *hdr = (CmdHeader *)netbuf;
 
@@ -1139,7 +1198,7 @@ int BlueSeaLidarSDK::PackNetCmd(uint16_t type, uint16_t len, uint16_t sn, const 
 	return len4 + 12;
 }
 
-int BlueSeaLidarSDK::SendNetPack(int sock, uint16_t type, uint16_t len, const void *buf, char *ip, int port)
+int PaceCatLidarSDK::SendNetPack(int sock, uint16_t type, uint16_t len, const void *buf, char *ip, int port)
 {
 	uint8_t netbuf[1024];
 	int netlen = PackNetCmd(type, len, rand(), buf, netbuf);
@@ -1153,8 +1212,12 @@ int BlueSeaLidarSDK::SendNetPack(int sock, uint16_t type, uint16_t len, const vo
 				  (struct sockaddr *)&addr, sizeof(struct sockaddr));
 }
 
-int BlueSeaLidarSDK::read_calib(const char *lidar_ip, int port)
+int PaceCatLidarSDK::read_calib(const char *lidar_ip, int port)
 {
+#ifdef _WIN32
+	WSADATA wsda; //   Structure   to   store   info
+	WSAStartup(MAKEWORD(2, 2), &wsda);
+#endif // _WIN32
 	int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	printf("read data from %s:%d\n", lidar_ip, port);
 	uint8_t zbuf[16] = {0};
@@ -1181,13 +1244,13 @@ int BlueSeaLidarSDK::read_calib(const char *lidar_ip, int port)
 		return -1;
 	}
 
-	char buf[1024];
+	char buf[1024] = {0};
 	sockaddr_in addr;
 	socklen_t sz = sizeof(addr);
 	recvfrom(sockfd, (char *)&buf, sizeof(buf), 0,
 			 (struct sockaddr *)&addr, &sz);
 
-	close(sockfd);
+	//close(sockfd);
 	const CmdHeader *hdr = (CmdHeader *)buf;
 	if (hdr->sign != PACK_PREAMLE)
 	{
@@ -1220,7 +1283,7 @@ int BlueSeaLidarSDK::read_calib(const char *lidar_ip, int port)
 		return -1;
 	}
 	int id = QueryIDByIp(lidar_ip);
-	RunConfig *cfg = getConfig(id);
+	RunConfig *cfg = GetConfig(id);
 	cfg->imu_drift = drift.drifts.imu;
 	printf("imu : %f, %f, %f; %f, %f, %f; %f, %f, %f \n",
 		   cfg->imu_drift.R[0][0], cfg->imu_drift.R[0][1], cfg->imu_drift.R[0][2],
@@ -1298,7 +1361,7 @@ void HeartThreadProc(HeartInfo &heartinfo)
 			char tmp_ip[16];
 			sprintf(tmp_ip, "%d.%d.%d.%d", devheart->ip[0], devheart->ip[1], devheart->ip[2], devheart->ip[3]);
 			std::string ip = BaseAPI::stringfilter(tmp_ip, 16);
-			int id = BlueSeaLidarSDK::getInstance()->QueryIDByIp(ip);
+			int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(ip);
 			bool isexist = false;
 			for (unsigned int i = 0; i < heartinfo.lidars.size(); i++)
 			{
@@ -1312,7 +1375,7 @@ void HeartThreadProc(HeartInfo &heartinfo)
 						heartinfo.lidars[i].state = true;
 
 						std::string result = sn + " " + ip + "  online";
-						BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+						PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 					}
 					break;
 				}
@@ -1336,7 +1399,7 @@ void HeartThreadProc(HeartInfo &heartinfo)
 				info.flag = true;
 				heartinfo.lidars.push_back(info);
 				std::string result = sn + " " + ip + "  online";
-				BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+				PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 			}
 		}
 		// check is outtime
@@ -1347,10 +1410,10 @@ void HeartThreadProc(HeartInfo &heartinfo)
 			{
 				if (heartinfo.lidars[i].state == ONLINE && !heartinfo.lidars[i].flag)
 				{
-					int id = BlueSeaLidarSDK::getInstance()->QueryIDByIp(heartinfo.lidars[i].ip);
+					int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(heartinfo.lidars[i].ip);
 					heartinfo.lidars[i].state = false;
 					std::string result = heartinfo.lidars[i].sn + " " + heartinfo.lidars[i].ip + "  offline";
-					BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 				}
 				heartinfo.lidars[i].flag = false;
 			}
@@ -1360,19 +1423,19 @@ void HeartThreadProc(HeartInfo &heartinfo)
 	SystemAPI::closefd(sock, true);
 }
 
-bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string path, std::string &error)
+bool PaceCatLidarSDK::FirmwareUpgrade(std::string ip, int port, std::string path, std::string &error)
 {
 	int id = QueryIDByIp(ip);
 	if (id < 0)
 		return false;
 	std::string result = "firmware update start";
-	BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 
 	int udp = SystemAPI::open_socket_port(port, true);
 	if (udp <= 0)
 	{
 		result = "open listen port failed: " + std::to_string(port);
-		BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 		return false;
 	}
 	unsigned short rands = rand();
@@ -1382,12 +1445,12 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 	if (!firmwareFile)
 	{
 		result = "Failed to load firmware upgrade file: " + std::to_string(port);
-		BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 		SystemAPI::closefd(udp, true);
 		return false;
 	}
 	result = "load firmware file ok";
-	BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 
 	FirmWriteResp *resp = NULL;
 	bool isBreak = false;
@@ -1398,7 +1461,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 	int idx = 0;
 	SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
 	result = "send flash erase";
-	BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 	while (!isBreak)
 	{
 		if (resp != NULL)
@@ -1427,7 +1490,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 				// int offset=((FirmwarePart*)(resndBuf.buf))->offset;
 
 				result = "send cmd more than three times without answering";
-				BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+				PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 				idx = 0;
 				break;
 			}
@@ -1460,7 +1523,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 					if (resp->offset == OP_WRITE_IAP)
 					{
 						result = "receive OP_WRITE_IAP";
-						BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+						PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 						if (resp->result == 0)
 						{
 							FirmwarePart fp;
@@ -1470,7 +1533,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 							SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
 							SystemAPI::closefd(udp, true);
 							result = "firmware file update success";
-							BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 							return true;
 						}
 						else
@@ -1478,7 +1541,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 							error = resp->result;
 							SystemAPI::closefd(udp, true);
 							result = "firmware file update failed:" + error;
-							BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 
 							return false;
 						}
@@ -1489,7 +1552,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 						{
 							fp.offset = 0;
 							result = "receive OP_FLASH_ERASE";
-							BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 						}
 						else
 						{
@@ -1500,7 +1563,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 						if (fp.offset + 512 <= (uint32_t)firmwareFile->len)
 						{
 							result = "offset:" + std::to_string(fp.offset) + "total:" + std::to_string(firmwareFile->len);
-							BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 
 							memcpy(fp.buf, firmwareFile->buffer + fp.offset, 512);
 							fp.crc = stm32crc(fp.buf, 128);
@@ -1512,7 +1575,7 @@ bool BlueSeaLidarSDK::firmwareUpgrade_udp(std::string ip, int port, std::string 
 							fp.buf[0] = firmwareFile->len;
 							fp.buf[1] = firmwareFile->crc;
 							result = "send OP_WRITE_IAP";
-							BlueSeaLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 						}
 						SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
 					}

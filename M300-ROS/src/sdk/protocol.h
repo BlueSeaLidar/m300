@@ -1,4 +1,4 @@
-#ifndef M300_E_PROTOCOL_H
+﻿#ifndef M300_E_PROTOCOL_H
 #define M300_E_PROTOCOL_H
 
 #include"define.h"
@@ -14,6 +14,20 @@
 #define GS_PACK 0x4753
 #define S_PACK 0x0053
 #define C_PACK 0x0043
+
+#define OP_FLASH_ERASE	0xFE00EEEE
+#define OP_WRITE_IAP		0xFE00AAAA
+#define OP_FRIMWARE_RESET		0xFE00BBBB
+
+#define PACK_PREAMLE 0X484C
+#define F_PACK 0x0046
+#define TIMEOUT 3
+#define BUFFERSIZE 1024
+
+#define TAG_MIRROR_NOT_STABLE 	0x80
+#define TAG_MOTOR_NOT_STABLE	0x40
+
+#define ONE_FRAME_BUFFER_SIZE 300*20*128
 
 typedef struct {
 	uint16_t code;
@@ -81,10 +95,6 @@ typedef struct {
 	uint8_t tag;
 } BlueSeaLidarSpherPoint;
 
-
-
-#define TAG_MIRROR_NOT_STABLE 	0x80
-#define TAG_MOTOR_NOT_STABLE	0x40
 
 typedef struct {
 	uint16_t mirror_rpm;
@@ -201,9 +211,9 @@ struct DevHeart
 
 struct EEpromV101
 {
-	char label[4];			
+	char label[4];
 	uint16_t pp_ver;
-	uint16_t size;			
+	uint16_t size;
 	uint8_t dev_sn[20];
 	uint8_t dev_type[16];
 	uint32_t dev_id;
@@ -228,14 +238,7 @@ struct KeepAlive {
 	uint32_t reserved[4];
 };
 
-#define OP_FLASH_ERASE	0xFE00EEEE
-#define OP_WRITE_IAP		0xFE00AAAA
-#define OP_FRIMWARE_RESET		0xFE00BBBB
 
-#define PACK_PREAMLE 0X484C
-#define F_PACK 0x0046
-#define TIMEOUT 3
-#define BUFFERSIZE 1024
 struct FirmwareFile
 {
 	int code;
@@ -269,27 +272,55 @@ struct ResendPack
 	char buf[2048];
 };
 
-typedef struct  
+typedef struct
 {
 	int sfp_enable;
-    int window;          // 阴影检测窗口大小
-    double min_angle;    // 最小角度
-    double max_angle;    // 最大角度
-    double effective_distance;
-
+	int window;          // 阴影检测窗口大小
+	double min_angle;    // 最小角度
+	double max_angle;    // 最大角度
+	double effective_distance;
 }ShadowsFilterParam;
-typedef struct  
+
+typedef struct
 {
 	int dfp_enable;
-    int continuous_times; //持续帧数
+	int continuous_times; //持续帧数
 	double dirty_factor;//脏污点报警系数
-	
+
 }DirtyFilterParam;
+typedef struct
+{
+	int mr_enable;
+	float roll;
+	float pitch;
+	float yaw;
+	float x;
+	float y;
+	float z;
+}MatrixRotate;
+
+typedef struct
+{
+	int mr_enable;
+	double trans[3];
+	double rotation[3][3];
+}MatrixRotate_2;
+
+typedef struct
+{
+	char lidar_ip[16];
+	int lidar_port;
+	int listen_port;
+	int ptp_enable;
+
+	int frame_package_num;
+	int timemode;
+} ArgData;
 
 
-typedef void(*LidarCloudPointCallback) (uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data);
-typedef void(*LidarImuDataCallback)(uint32_t handle, const uint8_t dev_type, LidarPacketData* data, void* client_data);
-typedef void(*LidarLogDataCallback)(uint32_t handle, const uint8_t dev_type, char* data, int len);
+typedef void(*LidarCloudPointCallback) (uint32_t handle, const uint8_t dev_type,  const LidarPacketData *data, void *client_data);
+typedef void(*LidarImuDataCallback)(uint32_t handle, const uint8_t dev_type, const LidarPacketData* data, void* client_data);
+typedef void(*LidarLogDataCallback)(uint32_t handle, const uint8_t dev_type, const char* data, int len);
 
 
 

@@ -13,6 +13,8 @@
 #define getbit(x,y)   ((x) >> (y)&1)
 #define setbit(x,y) x|=(1<<y)         //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y)            //将X的第Y位清0
+#define M_PI 3.14159265358979323846
+
 
 //自定义结构体
 struct CmdRecord
@@ -46,13 +48,16 @@ namespace CommunicationAPI {
 	bool udp_talk_pack(int fd_udp, const char * lidar_ip, int lidar_port, int send_len, const char * send_buf, int mode, int & recv_len, char * recv_buf, int delay=3, int delaynum=10000);
 }
 
-
-
-
 void send_cmd_udp(int fd_udp, const char* dev_ip, int dev_port, int cmd, int sn, int len, const void* snd_buf);
 void GetTimeStamp(timeval* tv,TIME_ST *timest);
 void DecTimestamp(uint32_t ts, uint32_t* ts2);
 void HexToChar(std::string data, char*result);
 void CharToHex(unsigned char*data,int length, std::string &result);
 unsigned int stm32crc(unsigned int* ptr, unsigned int len);
+
+void setMatrixRotateParam(MatrixRotate mr,MatrixRotate_2 &mr_2);
+
+
+
+
 #endif
