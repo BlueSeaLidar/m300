@@ -10,7 +10,7 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char* data, 
 int main()
 {
 	ArgData argdata;
-	char lidar_addr[] = "192.168.0.196";
+	char lidar_addr[] = "192.168.0.210";
 	memcpy(argdata.lidar_ip,lidar_addr,strlen(lidar_addr)+1);
 	argdata.lidar_port = 6543;
 	argdata.listen_port = 6668;
@@ -37,11 +37,9 @@ int main()
 
 	PaceCatLidarSDK::getInstance()->ConnectLidar(devID);
 
-
 	/*****************query lidar base info**************************/
 	BaseInfo info;	
 	PaceCatLidarSDK::getInstance()->QueryBaseInfo(devID, info);
-
 	printf(" ID:%d uuid:%s  model:%s\n lidarip:%s lidarmask:%s lidargateway:%s lidarport:%d \n uploadip:%s uploadport:%d  uploadfix:%d\n",
 		devID,
 		info.uuid.c_str(), info.model.c_str(),
@@ -51,7 +49,7 @@ int main()
 	VersionInfo  info2;
 	PaceCatLidarSDK::getInstance()->QueryVersion(devID, info2);
 	printf("ID:%d mcu_ver:%s  motor_ver:%s\n software_ver:%s \n", devID, info2.mcu_ver.c_str(), info2.motor_ver.c_str(), info2.software_ver.c_str());
-
+	
 	/*****************query  lidar is online**************************/
 	int isOnline = PaceCatLidarSDK::getInstance()->QueryDeviceState(devID);
 	printf("ID:%d    isOnline:%d\n", devID, isOnline);
@@ -82,6 +80,9 @@ int main()
 	while (1)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		int isOnline = PaceCatLidarSDK::getInstance()->QueryDeviceState(devID);
+		printf("ID:%d    isOnline:%d\n", devID, isOnline);
+
 	}
 	PaceCatLidarSDK::getInstance()->Uninit();
 }

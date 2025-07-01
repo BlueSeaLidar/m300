@@ -119,8 +119,8 @@ int main()
 		if (ret)
 		{
 			LidarPacketData* data = (LidarPacketData*)(chunk.c_str());
-			printf("data:main thread:%u ,data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
-				std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
+			//printf("data:main thread:%u ,data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
+				//std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
 
 			//printf every points xyz data
 			/*LidarCloudPointData* p_point_data = (LidarCloudPointData*)data->data;
@@ -136,11 +136,12 @@ int main()
 		{
 			LidarPacketData* data = (LidarPacketData*)(chunk.c_str());
 			LidarImuPointData* imudata = (LidarImuPointData*)data->data;
-			printf("imu queue:main thread:%u,data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
-				std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
+			//printf("imu queue:main thread:%u,data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
+				//std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
 			//printf imu data
 			//printf("%f %f %f %f %f %f\n", imudata->acc_x, imudata->acc_y, imudata->acc_z, imudata->gyro_x, imudata->gyro_y, imudata->gyro_z);
 		}
+		usleep(1);
 #endif
 		
 	}

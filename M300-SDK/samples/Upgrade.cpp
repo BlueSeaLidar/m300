@@ -12,7 +12,7 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char* data, 
 int main()
 {
 	ArgData argdata;
-	char lidar_addr[] = "192.168.0.196";
+	char lidar_addr[] = "192.168.0.210";
 	memcpy(argdata.lidar_ip,lidar_addr,strlen(lidar_addr)+1);
 	argdata.lidar_port = 6543;
 	argdata.listen_port = 6668;
@@ -33,7 +33,7 @@ int main()
 	setMatrixRotateParam(mr, mr_2);
 
 	//std::string  upgrade_file_path = "C:\\Users\\49535\\Desktop\\LDS-M300-E-20241029-115237.lhl";
-    std::string  upgrade_file_path = "/home/pacecat/wangzn/M300-SDK/LDS-M300-E-20241029-115237.lhl";
+    std::string  upgrade_file_path = "/home/pacecat/wangzn/m300/M300-SDK/LDS-M300-E-20250121-105930.lhl";
 	PaceCatLidarSDK::getInstance()->Init();
 	int devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata,sfp,dfp,mr_2);
 	PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);

@@ -16,8 +16,8 @@
     <param name="listen_port" value="6668" />
     <param name="lidar_ip" value="192.168.158.98" />
     <param name="ptp_enable" value="0" />
-    <param name="frame_package_num" value="180" />
-    <param name="timemode" value="1" />
+    <param name="frame_package_num" value="150" />
+    <param name="timemode" value="0" />
 
     #sfp
     <param name="sfp_enable" value="0" />

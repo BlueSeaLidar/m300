@@ -1,7 +1,7 @@
 ﻿// M300_SDK.cpp: 定义应用程序的入口点。
 //
 #include <fstream>
-#include<chrono>
+#include <chrono>
 #include "global.h"
 #include "pacecatlidarsdk.h"
 #ifdef _WIN32
@@ -13,11 +13,12 @@
 #include <chrono>
 #include <ctime>
 #include <sstream>
-std::string GetCurrentTimeStamp(int time_stamp_type = 0) {
+std::string GetCurrentTimeStamp(int time_stamp_type = 0)
+{
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 
 	std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
-	std::tm* now_tm = std::localtime(&now_time_t);
+	std::tm *now_tm = std::localtime(&now_time_t);
 	char buffer[128];
 	strftime(buffer, sizeof(buffer), "%F %T", now_tm);
 
@@ -27,7 +28,8 @@ std::string GetCurrentTimeStamp(int time_stamp_type = 0) {
 	std::chrono::milliseconds ms;
 	std::chrono::microseconds cs;
 	std::chrono::nanoseconds ns;
-	switch (time_stamp_type) {
+	switch (time_stamp_type)
+	{
 	case 0:
 		ss << buffer;
 		break;
@@ -52,10 +54,6 @@ std::string GetCurrentTimeStamp(int time_stamp_type = 0) {
 	}
 	return ss.str();
 }
-
-
-
-
 
 PaceCatLidarSDK *PaceCatLidarSDK::m_sdk = new (std::nothrow) PaceCatLidarSDK();
 PaceCatLidarSDK *PaceCatLidarSDK::getInstance()
@@ -148,8 +146,8 @@ void PaceCatLidarSDK::WritePointCloud(int ID, const uint8_t dev_type, LidarPacke
 		return;
 	if (lidar->cb_cloudpoint != nullptr)
 		lidar->cb_cloudpoint(ID, dev_type, data, lidar->cloudpoint);
-	else
-		free(data);
+	// else
+	// 	free(data);
 }
 
 void PaceCatLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketData *data)
@@ -167,8 +165,8 @@ void PaceCatLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketDa
 		return;
 	if (lidar->cb_imudata != nullptr)
 		lidar->cb_imudata(ID, dev_type, data, lidar->imudata);
-	else
-		free(data);
+	// else
+	// 	free(data);
 }
 
 void PaceCatLidarSDK::WriteLogData(int ID, const uint8_t dev_type, char *data, int len)
@@ -285,7 +283,6 @@ bool PaceCatLidarSDK::QueryBaseInfo(int ID, BaseInfo &info)
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		index--;
 	}
-
 	if (lidar->action == FINISH)
 	{
 		lidar->action = NONE;
@@ -383,7 +380,8 @@ int PaceCatLidarSDK::QueryDeviceState(int ID)
 		std::string tmpip = m_heartinfo.lidars[i].ip;
 		if (ip == tmpip)
 		{
-			return ONLINE;
+			return m_heartinfo.lidars[i].state;
+			// return ONLINE;
 		}
 	}
 	return OFFLINE;
@@ -644,12 +642,11 @@ void AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<Lidar
 		LidarCloudPointData point;
 		double ang = PacketToPoints(data[i], point);
 		// todo  将点转置
-		if(mr_2.mr_enable)
+		if (mr_2.mr_enable)
 		{
-			point.x = point.x*mr_2.rotation[0][0]+point.y*mr_2.rotation[0][1]+point.z*mr_2.rotation[0][2]+mr_2.trans[0];
-			point.y = point.x*mr_2.rotation[1][0]+point.y*mr_2.rotation[1][1]+point.z*mr_2.rotation[1][2]+mr_2.trans[1];
-			point.z = point.x*mr_2.rotation[2][0]+point.y*mr_2.rotation[2][1]+point.z*mr_2.rotation[2][2]+mr_2.trans[2];
-
+			point.x = point.x * mr_2.rotation[0][0] + point.y * mr_2.rotation[0][1] + point.z * mr_2.rotation[0][2] + mr_2.trans[0];
+			point.y = point.x * mr_2.rotation[1][0] + point.y * mr_2.rotation[1][1] + point.z * mr_2.rotation[1][2] + mr_2.trans[1];
+			point.z = point.x * mr_2.rotation[2][0] + point.y * mr_2.rotation[2][1] + point.z * mr_2.rotation[2][2] + mr_2.trans[2];
 		}
 		point.offset_time = packet->timestamp + i * packet->time_interval * 100.0 / (packet->dot_num - 1) - first_timestamp;
 		if (sfp.sfp_enable)
@@ -715,13 +712,13 @@ void UDPThreadProc(int id)
 	std::vector<double> tmp_ang;
 	int continuous_times = 0;
 	uint64_t frame_starttime = 0;
-	//save one frame pointcloud data
-	LidarPacketData* pointclouddata = (LidarPacketData*)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * cfg->frame_package_num*128);
-	//save one packet imudata
-	LidarPacketData* imudata = (LidarPacketData*)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
+	// save one frame pointcloud data
+	LidarPacketData *pointclouddata = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * cfg->frame_package_num * 128);
+	// save one packet imudata
+	LidarPacketData *imudata = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
 
-	//int g_num = 0;
-	//std::cout << 111 << GetCurrentTimeStamp(3) << std::endl; // 纳秒级时间戳
+	// int g_num = 0;
+	// std::cout << 111 << GetCurrentTimeStamp(3) << std::endl; // 纳秒级时间戳
 
 	while (cfg->run_state != QUIT)
 	{
@@ -747,6 +744,12 @@ void UDPThreadProc(int id)
 					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet length error: " + std::to_string(dw) + "  " + std::to_string(packet_size);
 					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 				}
+				if (packet->udp_cnt != bluesea_idx)
+				{
+					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet lost :last " + std::to_string(packet->udp_cnt) + " now: " + std::to_string(bluesea_idx);
+					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
+				}
+				bluesea_idx = packet->udp_cnt + 1;
 
 				if (packet->version == 1)
 				{
@@ -754,21 +757,16 @@ void UDPThreadProc(int id)
 					{
 						std::string err = "time: " + SystemAPI::getCurrentTime() + " mirror " + std::to_string(packet->rt_v1.mirror_rpm);
 						PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+						continue;
 					}
 
 					if (packet->rt_v1.tags & TAG_MOTOR_NOT_STABLE)
 					{
 						std::string err = "time: " + SystemAPI::getCurrentTime() + " main motor " + std::to_string(packet->rt_v1.motor_rpm_x10 / 10.0);
 						PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+						continue;
 					}
 				}
-
-				if (packet->udp_cnt != bluesea_idx)
-				{
-					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet lost :last " + std::to_string(packet->udp_cnt) + " now: " + std::to_string(bluesea_idx);
-					PaceCatLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
-				}
-				bluesea_idx = packet->udp_cnt + 1;
 
 				int count = cfg->cloud_data.size();
 				if (count == 0)
@@ -785,7 +783,7 @@ void UDPThreadProc(int id)
 						frame_starttime = cfg->frame_firstpoint_timestamp;
 					}
 				}
-				AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp,cfg->mr_2);
+				AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp, cfg->mr_2);
 				count = cfg->cloud_data.size();
 				if (cfg->frame_package_num < 80)
 				{
@@ -794,7 +792,7 @@ void UDPThreadProc(int id)
 				}
 				if (count >= cfg->frame_package_num * 128)
 				{
-					//LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count);
+					// LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count);
 					LidarCloudPointData *dat2 = (LidarCloudPointData *)pointclouddata->data;
 					struct timeval tv;
 					SystemAPI::GetTimeStamp(&tv, true);
@@ -863,7 +861,7 @@ void UDPThreadProc(int id)
 				{
 					IIM42652_FIFO_PACKET_16_ST imu_stmp = cfg->imu_data.front();
 					cfg->imu_data.pop();
-					//LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
+					// LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarImuPointData));
 					LidarImuPointData *dat2 = (LidarImuPointData *)imudata->data;
 
 					dat2->gyro_x = imu_stmp.Gyro_X * 4000.0 / 0x10000 * M_PI / 180 + cfg->imu_drift.Gyro[0];
@@ -917,12 +915,11 @@ void UDPThreadProc(int id)
 					   ptr[0], ptr[1], ptr[2], ptr[3],
 					   ptr[4], ptr[5], ptr[6], ptr[7]);
 			}
-			//if (g_num == 1000)
+			// if (g_num == 1000)
 			//{
 			//	std::cout << 222 << GetCurrentTimeStamp(3) << std::endl; // 纳秒级时间戳
 			//	g_num = 0;
-			//}
-
+			// }
 		}
 		switch (cfg->action)
 		{
@@ -1250,7 +1247,7 @@ int PaceCatLidarSDK::read_calib(const char *lidar_ip, int port)
 	recvfrom(sockfd, (char *)&buf, sizeof(buf), 0,
 			 (struct sockaddr *)&addr, &sz);
 
-	//close(sockfd);
+	// close(sockfd);
 	const CmdHeader *hdr = (CmdHeader *)buf;
 	if (hdr->sign != PACK_PREAMLE)
 	{
@@ -1336,378 +1333,378 @@ void HeartThreadProc(HeartInfo &heartinfo)
 		SystemAPI::closefd(sock, true);
 		return;
 	}
-	/*int time_out = 1000;
-	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&time_out, sizeof(time_out)) == -1)
-	{
-		heartinfo.value = "socket init error";
-		heartinfo.code = SystemAPI::getLastError();
-		SystemAPI::closefd(sock, true);
-		return;
-	}*/
 
 	struct timeval tv;
 	SystemAPI::GetTimeStamp(&tv, false);
-	time_t tto = tv.tv_sec + 3;
+	time_t tto = tv.tv_sec + 1;
+	socklen_t sz = sizeof(addr);
 	while (heartinfo.isrun)
 	{
-		socklen_t sz = sizeof(addr);
-
-		char raw[4096];
-		int dw = recvfrom(sock, raw, sizeof(raw), 0, (struct sockaddr *)&addr, &sz);
-		if (dw == sizeof(DevHeart))
+		fd_set fds;
+		FD_ZERO(&fds);
+		FD_SET(sock, &fds);
+		struct timeval to = {1, 0};
+		int ret = select(sock + 1, &fds, NULL, NULL, &to);
+		if (ret > 0)
 		{
-			DevHeart *devheart = (DevHeart *)raw;
-			std::string sn = BaseAPI::stringfilter(devheart->dev_sn, 20);
-			char tmp_ip[16];
-			sprintf(tmp_ip, "%d.%d.%d.%d", devheart->ip[0], devheart->ip[1], devheart->ip[2], devheart->ip[3]);
-			std::string ip = BaseAPI::stringfilter(tmp_ip, 16);
-			int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(ip);
-			bool isexist = false;
-			for (unsigned int i = 0; i < heartinfo.lidars.size(); i++)
+			char raw[4096];
+			int dw = recvfrom(sock, raw, sizeof(raw), 0, (struct sockaddr *)&addr, &sz);
+			if (dw == sizeof(DevHeart))
 			{
-				if (sn == heartinfo.lidars[i].sn)
+				DevHeart *devheart = (DevHeart *)raw;
+				std::string sn = BaseAPI::stringfilter(devheart->dev_sn, 20);
+				char tmp_ip[16];
+				sprintf(tmp_ip, "%d.%d.%d.%d", devheart->ip[0], devheart->ip[1], devheart->ip[2], devheart->ip[3]);
+				std::string ip = BaseAPI::stringfilter(tmp_ip, 16);
+				int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(ip);
+				bool isexist = false;
+				for (unsigned int i = 0; i < heartinfo.lidars.size(); i++)
 				{
-					heartinfo.lidars[i].timestamp = devheart->timestamp[1] * 1000 + devheart->timestamp[0] / 1000000;
-					isexist = true;
-					heartinfo.lidars[i].flag = true;
-					if (!heartinfo.lidars[i].state)
+					if (sn == heartinfo.lidars[i].sn)
 					{
-						heartinfo.lidars[i].state = true;
+						heartinfo.lidars[i].timestamp = devheart->timestamp[1] * 1000 + devheart->timestamp[0] / 1000000;
+						isexist = true;
+						heartinfo.lidars[i].flag = true;
+						if (!heartinfo.lidars[i].state)
+						{
+							heartinfo.lidars[i].state = true;
 
-						std::string result = sn + " " + ip + "  online";
-						PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							std::string result = sn + " " + ip + "  online";
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+						}
+						break;
 					}
-					break;
+					// exist  two more lidars with same ip
+					if (ip == heartinfo.lidars[i].ip)
+					{
+						heartinfo.value = "multiple lidars with the same ip";
+						heartinfo.code = -1;
+						// heartinfo.isrun=false;
+						break;
+					}
 				}
-				// exist  two more lidars with same ip
-				if (ip == heartinfo.lidars[i].ip)
+				if (!isexist)
 				{
-					heartinfo.value = "multiple lidars with the same ip";
-					heartinfo.code = -1;
-					// heartinfo.isrun=false;
-					break;
-				}
-			}
-			if (!isexist)
-			{
-				ConnectInfo info;
-				info.ip = ip;
-				info.sn = sn;
-				info.port = devheart->port;
-				info.timestamp = (devheart->timestamp[0]) * 1000 + devheart->timestamp[1] / 1000000;
-				info.state = true;
-				info.flag = true;
-				heartinfo.lidars.push_back(info);
-				std::string result = sn + " " + ip + "  online";
-				PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-			}
-		}
-		// check is outtime
-		SystemAPI::GetTimeStamp(&tv, false);
-		if (tv.tv_sec > tto)
-		{
-			for (unsigned int i = 0; i < heartinfo.lidars.size(); i++)
-			{
-				if (heartinfo.lidars[i].state == ONLINE && !heartinfo.lidars[i].flag)
-				{
-					int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(heartinfo.lidars[i].ip);
-					heartinfo.lidars[i].state = false;
-					std::string result = heartinfo.lidars[i].sn + " " + heartinfo.lidars[i].ip + "  offline";
+					ConnectInfo info;
+					info.ip = ip;
+					info.sn = sn;
+					info.port = devheart->port;
+					info.timestamp = (devheart->timestamp[0]) * 1000 + devheart->timestamp[1] / 1000000;
+					info.state = true;
+					info.flag = true;
+					heartinfo.lidars.push_back(info);
+					std::string result = sn + " " + ip + "  online";
 					PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
 				}
-				heartinfo.lidars[i].flag = false;
 			}
-			tto = tv.tv_sec + 3;
 		}
-	}
-	SystemAPI::closefd(sock, true);
-}
 
-bool PaceCatLidarSDK::FirmwareUpgrade(std::string ip, int port, std::string path, std::string &error)
-{
-	int id = QueryIDByIp(ip);
-	if (id < 0)
-		return false;
-	std::string result = "firmware update start";
-	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-
-	int udp = SystemAPI::open_socket_port(port, true);
-	if (udp <= 0)
-	{
-		result = "open listen port failed: " + std::to_string(port);
-		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-		return false;
+			// check is outtime
+			SystemAPI::GetTimeStamp(&tv, false);
+			if (tv.tv_sec > tto)
+			{
+				for (unsigned int i = 0; i < heartinfo.lidars.size(); i++)
+				{
+					if (heartinfo.lidars[i].state == ONLINE && !heartinfo.lidars[i].flag)
+					{
+						int id = PaceCatLidarSDK::getInstance()->QueryIDByIp(heartinfo.lidars[i].ip);
+						heartinfo.lidars[i].state = false;
+						std::string result = heartinfo.lidars[i].sn + " " + heartinfo.lidars[i].ip + "  offline";
+						PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					}
+					heartinfo.lidars[i].flag = false;
+				}
+				tto = tv.tv_sec + 1;
+			}
+		}
+		SystemAPI::closefd(sock, true);
 	}
-	unsigned short rands = rand();
-	ResendPack resndBuf;
-	FirmwareFile *firmwareFile = LoadFirmware(path.c_str());
-	FirmwarePart fp;
-	if (!firmwareFile)
+
+	bool PaceCatLidarSDK::FirmwareUpgrade(std::string ip, int port, std::string path, std::string &error)
 	{
-		result = "Failed to load firmware upgrade file: " + std::to_string(port);
+		int id = QueryIDByIp(ip);
+		if (id < 0)
+			return false;
+		std::string result = "firmware update start";
 		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+
+		int udp = SystemAPI::open_socket_port(port, true);
+		if (udp <= 0)
+		{
+			result = "open listen port failed: " + std::to_string(port);
+			PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+			return false;
+		}
+		unsigned short rands = rand();
+		ResendPack resndBuf;
+		FirmwareFile *firmwareFile = LoadFirmware(path.c_str());
+		FirmwarePart fp;
+		if (!firmwareFile)
+		{
+			result = "Failed to load firmware upgrade file: " + std::to_string(port);
+			PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+			SystemAPI::closefd(udp, true);
+			return false;
+		}
+		result = "load firmware file ok";
+		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+
+		FirmWriteResp *resp = NULL;
+		bool isBreak = false;
+		fp.offset = OP_FLASH_ERASE;
+		fp.buf[0] = firmwareFile->len;
+		fp.buf[1] = firmwareFile->crc;
+		memset(&resndBuf, 0, sizeof(ResendPack));
+		int idx = 0;
+		SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
+		result = "send flash erase";
+		PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+		while (!isBreak)
+		{
+			if (resp != NULL)
+			{
+				delete resp;
+				resp = NULL;
+			}
+			fd_set fds;
+			FD_ZERO(&fds);
+			FD_SET(udp, &fds);
+			struct timeval to = {5, 0};
+			int ret = select(udp + 1, &fds, NULL, NULL, &to);
+			if (ret < 0)
+			{
+				continue;
+			}
+			else if (ret == 0)
+				continue;
+
+			if (resndBuf.timeout < time(NULL))
+			{
+				SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
+				idx++;
+				if (idx > 3)
+				{
+					// int offset=((FirmwarePart*)(resndBuf.buf))->offset;
+
+					result = "send cmd more than three times without answering";
+					PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					idx = 0;
+					break;
+				}
+			}
+			if (FD_ISSET(udp, &fds))
+			{
+				sockaddr_in addr;
+				socklen_t sz = sizeof(addr);
+
+				char buf[1024] = {0};
+				int nr = recvfrom(udp, buf, sizeof(buf), 0, (struct sockaddr *)&addr, &sz);
+				if (nr > 0)
+				{
+					CmdHeader *hdr = (CmdHeader *)buf;
+					if (hdr->sign != 0x484c)
+						continue;
+
+					if (hdr->sn == rands)
+					{
+						if (resndBuf.sn == hdr->sn)
+						{
+							memset(&resndBuf, 0, sizeof(ResendPack));
+						}
+						resp = new FirmWriteResp;
+						memcpy((void *)resp, buf + sizeof(CmdHeader), hdr->len);
+						resp->msg[sizeof(resp->msg) - 1] = 0;
+						if (resp->result != 0)
+							break;
+						idx = 0;
+						if (resp->offset == OP_WRITE_IAP)
+						{
+							result = "receive OP_WRITE_IAP";
+							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							if (resp->result == 0)
+							{
+								FirmwarePart fp;
+								// 重启机器
+								fp.offset = OP_FRIMWARE_RESET;
+								fp.buf[0] = 0xabcd1234;
+								SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
+								SystemAPI::closefd(udp, true);
+								result = "firmware file update success";
+								PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+								return true;
+							}
+							else
+							{
+								error = resp->result;
+								SystemAPI::closefd(udp, true);
+								result = "firmware file update failed:" + error;
+								PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+
+								return false;
+							}
+						}
+						if (firmwareFile != NULL)
+						{
+							if (resp->offset == OP_FLASH_ERASE)
+							{
+								fp.offset = 0;
+								result = "receive OP_FLASH_ERASE";
+								PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							}
+							else
+							{
+								// printf("%x\n",fp.offset);
+								fp.offset = resp->offset + 512;
+							}
+
+							if (fp.offset + 512 <= (uint32_t)firmwareFile->len)
+							{
+								result = "offset:" + std::to_string(fp.offset) + "total:" + std::to_string(firmwareFile->len);
+								PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+
+								memcpy(fp.buf, firmwareFile->buffer + fp.offset, 512);
+								fp.crc = stm32crc(fp.buf, 128);
+							}
+							else
+							{
+								// MYLOG<<"OP_WRITE_IAP";
+								fp.offset = OP_WRITE_IAP;
+								fp.buf[0] = firmwareFile->len;
+								fp.buf[1] = firmwareFile->crc;
+								result = "send OP_WRITE_IAP";
+								PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
+							}
+							SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
+						}
+					}
+				}
+			}
+		}
 		SystemAPI::closefd(udp, true);
 		return false;
 	}
-	result = "load firmware file ok";
-	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-
-	FirmWriteResp *resp = NULL;
-	bool isBreak = false;
-	fp.offset = OP_FLASH_ERASE;
-	fp.buf[0] = firmwareFile->len;
-	fp.buf[1] = firmwareFile->crc;
-	memset(&resndBuf, 0, sizeof(ResendPack));
-	int idx = 0;
-	SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
-	result = "send flash erase";
-	PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-	while (!isBreak)
+	FirmwareFile *LoadFirmware(const char *path)
 	{
-		if (resp != NULL)
+		FILE *pfile = nullptr;
+		long length = 0; // 升级文件长度
+		pfile = fopen(path, "rb");
+		if (pfile == NULL)
 		{
-			delete resp;
-			resp = NULL;
+			printf("open error\n");
+			return NULL;
 		}
-		fd_set fds;
-		FD_ZERO(&fds);
-		FD_SET(udp, &fds);
-		struct timeval to = {5, 0};
-		int ret = select(udp + 1, &fds, NULL, NULL, &to);
-		if (ret < 0)
+		else
 		{
-			continue;
+			fseek(pfile, 0, SEEK_END);
+			length = ftell(pfile);
+			fseek(pfile, 0, SEEK_SET);
 		}
-		else if (ret == 0)
-			continue;
+		FirmwareFile *fp = NULL;
+		fp = (FirmwareFile *)new char[length];
+		fread(fp, length, 1, pfile);
+		fclose(pfile);
+		// printf("%d %d  %d  %d\n",__LINE__,fp->len,sizeof(FirmwareFile),length);
 
-		if (resndBuf.timeout < time(NULL))
+		if ((unsigned int)fp->code == 0xb18e03ea && fp->len % 512 == 0 && fp->len + sizeof(FirmwareFile) == (unsigned long)length)
 		{
-			SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
-			idx++;
-			if (idx > 3)
+			if (fp->crc == stm32crc((uint32_t *)(fp->buffer), fp->len / 4))
 			{
-				// int offset=((FirmwarePart*)(resndBuf.buf))->offset;
 
-				result = "send cmd more than three times without answering";
-				PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-				idx = 0;
-				break;
+				return fp;
 			}
 		}
-		if (FD_ISSET(udp, &fds))
-		{
-			sockaddr_in addr;
-			socklen_t sz = sizeof(addr);
-
-			char buf[1024] = {0};
-			int nr = recvfrom(udp, buf, sizeof(buf), 0, (struct sockaddr *)&addr, &sz);
-			if (nr > 0)
-			{
-				CmdHeader *hdr = (CmdHeader *)buf;
-				if (hdr->sign != 0x484c)
-					continue;
-
-				if (hdr->sn == rands)
-				{
-					if (resndBuf.sn == hdr->sn)
-					{
-						memset(&resndBuf, 0, sizeof(ResendPack));
-					}
-					resp = new FirmWriteResp;
-					memcpy((void *)resp, buf + sizeof(CmdHeader), hdr->len);
-					resp->msg[sizeof(resp->msg) - 1] = 0;
-					if (resp->result != 0)
-						break;
-					idx = 0;
-					if (resp->offset == OP_WRITE_IAP)
-					{
-						result = "receive OP_WRITE_IAP";
-						PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-						if (resp->result == 0)
-						{
-							FirmwarePart fp;
-							// 重启机器
-							fp.offset = OP_FRIMWARE_RESET;
-							fp.buf[0] = 0xabcd1234;
-							SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
-							SystemAPI::closefd(udp, true);
-							result = "firmware file update success";
-							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-							return true;
-						}
-						else
-						{
-							error = resp->result;
-							SystemAPI::closefd(udp, true);
-							result = "firmware file update failed:" + error;
-							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-
-							return false;
-						}
-					}
-					if (firmwareFile != NULL)
-					{
-						if (resp->offset == OP_FLASH_ERASE)
-						{
-							fp.offset = 0;
-							result = "receive OP_FLASH_ERASE";
-							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-						}
-						else
-						{
-							// printf("%x\n",fp.offset);
-							fp.offset = resp->offset + 512;
-						}
-
-						if (fp.offset + 512 <= (uint32_t)firmwareFile->len)
-						{
-							result = "offset:" + std::to_string(fp.offset) + "total:" + std::to_string(firmwareFile->len);
-							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-
-							memcpy(fp.buf, firmwareFile->buffer + fp.offset, 512);
-							fp.crc = stm32crc(fp.buf, 128);
-						}
-						else
-						{
-							// MYLOG<<"OP_WRITE_IAP";
-							fp.offset = OP_WRITE_IAP;
-							fp.buf[0] = firmwareFile->len;
-							fp.buf[1] = firmwareFile->crc;
-							result = "send OP_WRITE_IAP";
-							PaceCatLidarSDK::getInstance()->WriteLogData(id, 0, (char *)result.c_str(), result.size());
-						}
-						SendUpgradePack(udp, &fp, (char *)ip.c_str(), port, rands, &resndBuf);
-					}
-				}
-			}
-		}
-	}
-	SystemAPI::closefd(udp, true);
-	return false;
-}
-FirmwareFile *LoadFirmware(const char *path)
-{
-	FILE *pfile = nullptr;
-	long length = 0; // 升级文件长度
-	pfile = fopen(path, "rb");
-	if (pfile == NULL)
-	{
-		printf("open error\n");
 		return NULL;
 	}
-	else
-	{
-		fseek(pfile, 0, SEEK_END);
-		length = ftell(pfile);
-		fseek(pfile, 0, SEEK_SET);
-	}
-	FirmwareFile *fp = NULL;
-	fp = (FirmwareFile *)new char[length];
-	fread(fp, length, 1, pfile);
-	fclose(pfile);
-	// printf("%d %d  %d  %d\n",__LINE__,fp->len,sizeof(FirmwareFile),length);
 
-	if ((unsigned int)fp->code == 0xb18e03ea && fp->len % 512 == 0 && fp->len + sizeof(FirmwareFile) == (unsigned long)length)
+	void SendUpgradePack(unsigned int udp, const FirmwarePart *fp, char *ip, int port, int SN, ResendPack *resndBuf)
 	{
-		if (fp->crc == stm32crc((uint32_t *)(fp->buffer), fp->len / 4))
+		CommunicationAPI::send_cmd_udp(udp, ip, port, F_PACK, SN, sizeof(FirmwarePart), (char *)fp);
+		if (resndBuf)
 		{
-
-			return fp;
+			resndBuf->cmd = F_PACK;
+			resndBuf->len = sizeof(FirmwarePart);
+			resndBuf->tried = 1;
+			resndBuf->sn = SN;
+			resndBuf->timeout = time(NULL) + TIMEOUT;
+			memcpy(resndBuf->buf, fp, sizeof(FirmwarePart));
 		}
 	}
-	return NULL;
-}
-
-void SendUpgradePack(unsigned int udp, const FirmwarePart *fp, char *ip, int port, int SN, ResendPack *resndBuf)
-{
-	CommunicationAPI::send_cmd_udp(udp, ip, port, F_PACK, SN, sizeof(FirmwarePart), (char *)fp);
-	if (resndBuf)
+	double getAngleWithViewpoint(float r1, float r2, double included_angle)
 	{
-		resndBuf->cmd = F_PACK;
-		resndBuf->len = sizeof(FirmwarePart);
-		resndBuf->tried = 1;
-		resndBuf->sn = SN;
-		resndBuf->timeout = time(NULL) + TIMEOUT;
-		memcpy(resndBuf->buf, fp, sizeof(FirmwarePart));
+		return atan2(r2 * sinf(included_angle), r1 - (r2 * cosf(included_angle)));
 	}
-}
-double getAngleWithViewpoint(float r1, float r2, double included_angle)
-{
-	return atan2(r2 * sinf(included_angle), r1 - (r2 * cosf(included_angle)));
-}
-int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in, std::vector<double> &ang_in, const ShadowsFilterParam &param, std::vector<double> &tmp_ang)
-{
-	double angle_increment = 0;
-	std::set<int> indices_to_delete;
-	for (unsigned int i = 0; i < scan_in.size() - param.window - 1; i++)
+	int ShadowsFilter(std::vector<LidarCloudPointData> & scan_in, std::vector<double> & ang_in, const ShadowsFilterParam &param, std::vector<double> &tmp_ang)
 	{
-		double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
-		if (dis_i > param.effective_distance | dis_i == 0)
-			continue;
-		for (int y = 1; y < param.window + 1; y++)
+		double angle_increment = 0;
+		std::set<int> indices_to_delete;
+		for (unsigned int i = 0; i < scan_in.size() - param.window - 1; i++)
 		{
-			int j = i + y;
-			// double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
-			double dis_j = sqrt((scan_in[j].x * scan_in[j].x) + (scan_in[j].y * scan_in[j].y) + (scan_in[j].z * scan_in[j].z));
-			// //屏蔽某些特殊的平面(水平面)
-			// double    dis = sqrt(pow(scan_in[i].x - scan_in[j].x, 2) + pow(scan_in[i].y - scan_in[j].y, 2) + pow(scan_in[i].z - scan_in[j].z, 2));
-			// double    z = fabs(scan_in[i].z - scan_in[j].z);
-			// double    result = sqrt(dis*dis - z*z);
-			// double   ang_final = atan2(result,z);
-			// ang_final = abs(ang_final * 180 /M_PI);
-			// if(ang_final < 10 || ang_final > 80) continue;
-			if (j < 0 || j >= (int)scan_in.size() || (int)i == j)
+			double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
+			if (dis_i > param.effective_distance | dis_i == 0)
 				continue;
-			// if(fabs(dis_i- dis_j) < 0.05)
-			// continue;
-			double rad = getAngleWithViewpoint(
-				dis_i,
-				dis_j,
-				tmp_ang[i] - tmp_ang[j]);
-
-			double angle = abs(rad * 180 / M_PI);
-			// std::cout << angle<< std::endl;
-			if (angle > param.max_angle || angle < param.min_angle)
+			for (int y = 1; y < param.window + 1; y++)
 			{
-				// std::cout << ang_in[i]-ang_in[j]<< std::endl;
-				int from, to;
-				// if (dis_i < dis_j)
-				{
-					from = i + 1;
-					to = j;
-				}
-				// else
-				// {
-				// from = j - 1;
-				// to = i;
-				// }
+				int j = i + y;
+				// double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
+				double dis_j = sqrt((scan_in[j].x * scan_in[j].x) + (scan_in[j].y * scan_in[j].y) + (scan_in[j].z * scan_in[j].z));
+				// //屏蔽某些特殊的平面(水平面)
+				// double    dis = sqrt(pow(scan_in[i].x - scan_in[j].x, 2) + pow(scan_in[i].y - scan_in[j].y, 2) + pow(scan_in[i].z - scan_in[j].z, 2));
+				// double    z = fabs(scan_in[i].z - scan_in[j].z);
+				// double    result = sqrt(dis*dis - z*z);
+				// double   ang_final = atan2(result,z);
+				// ang_final = abs(ang_final * 180 /M_PI);
+				// if(ang_final < 10 || ang_final > 80) continue;
+				if (j < 0 || j >= (int)scan_in.size() || (int)i == j)
+					continue;
+				// if(fabs(dis_i- dis_j) < 0.05)
+				// continue;
+				double rad = getAngleWithViewpoint(
+					dis_i,
+					dis_j,
+					tmp_ang[i] - tmp_ang[j]);
 
-				if (from > to)
+				double angle = abs(rad * 180 / M_PI);
+				// std::cout << angle<< std::endl;
+				if (angle > param.max_angle || angle < param.min_angle)
 				{
-					int t = from;
-					from = to;
-					to = t;
-				}
-				for (int index = from; index <= to; index++)
-				{
-					indices_to_delete.insert(index);
+					// std::cout << ang_in[i]-ang_in[j]<< std::endl;
+					int from, to;
+					// if (dis_i < dis_j)
+					{
+						from = i + 1;
+						to = j;
+					}
+					// else
+					// {
+					// from = j - 1;
+					// to = i;
+					// }
+
+					if (from > to)
+					{
+						int t = from;
+						from = to;
+						to = t;
+					}
+					for (int index = from; index <= to; index++)
+					{
+						indices_to_delete.insert(index);
+					}
 				}
 			}
 		}
+
+		int nr = 0;
+		for (std::set<int>::iterator it = indices_to_delete.begin(); it != indices_to_delete.end(); ++it)
+		{
+			scan_in[*it].tag += 64;
+			nr++;
+		}
+
+		return nr;
 	}
 
-	int nr = 0;
-	for (std::set<int>::iterator it = indices_to_delete.begin(); it != indices_to_delete.end(); ++it)
+	bool isBitSet(uint8_t num, int n)
 	{
-		scan_in[*it].tag += 64;
-		nr++;
+		return (num & (1 << n)) != 0; // 左移 n 位并与 num 按位与
 	}
-
-	return nr;
-}
-
-bool isBitSet(uint8_t num, int n)
-{
-	return (num & (1 << n)) != 0; // 左移 n 位并与 num 按位与
-}

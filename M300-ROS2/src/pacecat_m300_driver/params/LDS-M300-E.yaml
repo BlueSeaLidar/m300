@@ -11,8 +11,8 @@
     topic_imu: imu
     topic_pointcloud: pointcloud
     ptp_enable: -1
-    frame_package_num: 180
-    timemode: 1
+    frame_package_num: 150
+    timemode: 0
 #sfp
     sfp_enable : 0
     window: 1

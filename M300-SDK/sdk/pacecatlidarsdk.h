@@ -9,7 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "V1.4.3_20250514" // SDK版本号
+#define M300_E_SDKVERSION "V1.4.4_20250701" // SDK版本号
 
 
 typedef struct
