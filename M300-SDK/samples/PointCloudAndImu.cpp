@@ -2,7 +2,7 @@
 
 #include "../sdk/pacecatlidarsdk.h"
 #include"../sdk/global.h"
-
+#include<sstream>
 #define CUSTOM_WHELL
 
 #ifdef CUSTOM_WHELL
@@ -21,7 +21,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, const LidarPack
 	}
 #ifdef CUSTOM_WHELL
 	std::string chunk((char*)data,sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * data->dot_num);
-	//g_pointcloud_queue->try_enqueue(chunk);
+	g_pointcloud_queue->try_enqueue(chunk);
 	/*printf("workthread id: %d  point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
 		std::this_thread::get_id(), handle, data->dot_num, data->data_type, data->length, data->frame_cnt);*/
 #endif
@@ -59,13 +59,13 @@ int main()
 	g_imu_queue = &q2;
 #endif
 	ArgData argdata;
-	char lidar_addr[] = "192.168.0.210";
+	char lidar_addr[] = "192.168.0.88";
 	memcpy(argdata.lidar_ip,lidar_addr,strlen(lidar_addr)+1);
 	argdata.lidar_port = 6543;
 	argdata.listen_port = 6668;
-	argdata.ptp_enable = -1;
+	argdata.ptp_enable = 0;
 	argdata.frame_package_num = 180;
-	argdata.timemode=1;
+	argdata.timemode=0;
 
 	ShadowsFilterParam sfp;
 	sfp.sfp_enable = 0;
@@ -119,8 +119,10 @@ int main()
 		if (ret)
 		{
 			LidarPacketData* data = (LidarPacketData*)(chunk.c_str());
-			//printf("data:main thread:%u ,data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
-				//std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
+			std::ostringstream oss;
+    		oss << std::this_thread::get_id();
+			//printf("data:main thread:%s ,data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
+				//oss.str().c_str(), data->dot_num, data->data_type, data->length, data->frame_cnt);
 
 			//printf every points xyz data
 			/*LidarCloudPointData* p_point_data = (LidarCloudPointData*)data->data;
@@ -135,13 +137,15 @@ int main()
 		if (ret)
 		{
 			LidarPacketData* data = (LidarPacketData*)(chunk.c_str());
-			LidarImuPointData* imudata = (LidarImuPointData*)data->data;
-			//printf("imu queue:main thread:%u,data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
-				//std::this_thread::get_id(), data->dot_num, data->data_type, data->length, data->frame_cnt);
+			//LidarImuPointData* imudata = (LidarImuPointData*)data->data;
+			std::ostringstream oss;
+    		oss << std::this_thread::get_id();
+			//printf("imu queue:main thread:%s,data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
+				//oss.str().c_str(), data->dot_num, data->data_type, data->length, data->frame_cnt);
 			//printf imu data
 			//printf("%f %f %f %f %f %f\n", imudata->acc_x, imudata->acc_y, imudata->acc_z, imudata->gyro_x, imudata->gyro_y, imudata->gyro_z);
 		}
-		usleep(1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 #endif
 		
 	}

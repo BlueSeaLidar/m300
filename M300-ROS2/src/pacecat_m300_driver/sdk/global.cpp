@@ -434,18 +434,6 @@ uint8_t check_value(const char *buf, int len)
 	}
 	return checksum & 0xff;
 }
-void HexToChar(std::string data, char *result)
-{
-	int nValude = 0;
-	char p[2] = {0};
-	for (unsigned int i = 0; i < data.size() / 2; i++)
-	{
-		memcpy(p, data.c_str() + i * 2, 2);
-		sscanf(p, "%X", &nValude);
-		result[i] = nValude;
-	}
-}
-
 void GetTimeStamp(timeval *tv, TIME_ST *timest)
 {
 #ifdef _WIN32
@@ -592,4 +580,14 @@ void setMatrixRotateParam(MatrixRotate mr, MatrixRotate_2 &mr_2)
 		mr_2.rotation[2][1] = sin_roll * cos_pitch;
 		mr_2.rotation[2][2] = cos_roll * cos_pitch;
 	}
+}
+
+uint64_t getCurrentNanoseconds() 
+{
+    // 使用高精度时钟（通常是 steady_clock 或 high_resolution_clock）
+    auto now = std::chrono::high_resolution_clock::now();
+    
+    // 转换为纳秒时间戳
+    auto duration = now.time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
 }

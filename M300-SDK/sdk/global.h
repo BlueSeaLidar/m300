@@ -51,10 +51,8 @@ namespace CommunicationAPI {
 void send_cmd_udp(int fd_udp, const char* dev_ip, int dev_port, int cmd, int sn, int len, const void* snd_buf);
 void GetTimeStamp(timeval* tv,TIME_ST *timest);
 void DecTimestamp(uint32_t ts, uint32_t* ts2);
-void HexToChar(std::string data, char*result);
-void CharToHex(unsigned char*data,int length, std::string &result);
 unsigned int stm32crc(unsigned int* ptr, unsigned int len);
-
+uint64_t getCurrentNanoseconds();
 void setMatrixRotateParam(MatrixRotate mr,MatrixRotate_2 &mr_2);
 
 

@@ -131,6 +131,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, const LidarPack
       uint16_t N = data->dot_num;
       msg.point_num = N;
       msg.lidar_id = 0;
+      msg.timebase = data->timestamp;
       msg.header.frame_id = argdata->frame_id;
       msg.header.stamp.sec = data->timestamp / 1000000000;
       msg.header.stamp.nsec = data->timestamp % 1000000000;

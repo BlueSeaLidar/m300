@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     frame_id: map
-    lidar_ip: 192.168.158.98
+    lidar_ip: 192.168.0.88
     lidar_port: 6543
     listen_port: 6668
     output_custommsg: true

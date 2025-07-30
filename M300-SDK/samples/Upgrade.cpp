@@ -16,12 +16,12 @@ int main()
 	memcpy(argdata.lidar_ip,lidar_addr,strlen(lidar_addr)+1);
 	argdata.lidar_port = 6543;
 	argdata.listen_port = 6668;
-	argdata.ptp_enable = -1;
+	argdata.ptp_enable = 0;
 	argdata.frame_package_num = 180;
-	argdata.timemode=1;
+	argdata.timemode=0;
 	
 
-	int ptp_enable = -1;
+	int ptp_enable = 1;
 	int frame_package_num = 180;
 	ShadowsFilterParam sfp;
 	sfp.sfp_enable=0;
