@@ -9,7 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "V1.4.6_20250728" // SDK版本号
+#define M300_E_SDKVERSION "V1.4.7_20250801" // SDK版本号
 #define DEBUG_TEST 1
 
 
@@ -75,7 +75,8 @@ enum LidarAction
 	SET_UPLOAD_FIX,
 	PTP_INIT,
 	GET_NETERR,
-	UPGRADE
+	UPGRADE,
+	CACHE_CLEAR
 };
 enum LidarMsg
 {
@@ -218,6 +219,13 @@ public:
 	 *	query lidar  network err
 	 */
 	bool QueryLidarNetWork(int ID,std::string& path);
+
+		/*
+	 *	clear frame cache (Applied to situations   powered on or off, or rpm is unstable)
+	 */
+	bool ClearFrameCache(int ID);
+
+	
 
 
 	int read_calib(const char* lidar_ip, int port);

@@ -90,7 +90,11 @@ int main()
 		UserHeartInfo heartinfo = PaceCatLidarSDK::getInstance()->QueryDeviceState(devID);
 		printf("ID:%d  isOnline:%d  temperature:%.1f  motor_rpm:%.1f  mirror_rpm:%d voltage:%.3f\n", 
 		devID, heartinfo.isonline,heartinfo.temperature,heartinfo.motor_rpm,heartinfo.mirror_rpm,heartinfo.voltage);
-
+		if(!heartinfo.isonline)
+		{
+			bool isok = PaceCatLidarSDK::getInstance()->ClearFrameCache(devID);
+			printf("ID:%d  clear frame cache:%d \n", devID, isok);
+		}
 		// bool isok = PaceCatLidarSDK::getInstance()->SetLidarAction(devID, RESTART);
 		// std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		// printf("ID:%d  action:%d \n", devID, isok);

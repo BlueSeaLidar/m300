@@ -662,6 +662,36 @@ bool PaceCatLidarSDK::QueryLidarNetWork(int ID,std::string& netinfo)
 
 	return false;
 }
+bool PaceCatLidarSDK::ClearFrameCache(int ID)
+{
+	RunConfig *lidar = NULL;
+	for (unsigned int i = 0; i < m_lidars.size(); i++)
+	{
+		if (m_lidars.at(i)->ID == ID && m_lidars.at(i)->run_state != QUIT)
+		{
+			lidar = m_lidars.at(i);
+			break;
+		}
+	}
+	if (lidar == NULL)
+		return false;
+
+	lidar->action = CACHE_CLEAR;
+	int index = CMD_REPEAT;
+	while (lidar->action != FINISH && index > 0)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		index--;
+	}
+	if (lidar->action == FINISH)
+	{
+		lidar->action = NONE;
+		return true;
+	}
+
+	return false;
+}
+
 int PaceCatLidarSDK::QueryIDByIp(std::string ip)
 {
 	for (unsigned int i = 0; i < m_lidars.size(); i++)
@@ -1227,6 +1257,17 @@ void PaceCatLidarSDK::UDPThreadProc(int id)
 				cfg->recv_buf = "NG";
 			}
 			cfg->recv_buf = tmpresult;
+			cfg->recv_len = cfg->recv_buf.size();
+			cfg->action = FINISH;
+			break;
+		}
+		case CACHE_CLEAR:
+		{
+			cfg->cloud_data.clear();
+			m_package_num=0;
+			pointcloud_timestamp_last=0;
+			imu_timestamp_last=0;
+			cfg->recv_buf = "OK";
 			cfg->recv_len = cfg->recv_buf.size();
 			cfg->action = FINISH;
 			break;
