@@ -12,7 +12,7 @@
 #include "pacecat_m300_inter/msg/custom_point.hpp"
 #include "pacecat_m300_inter/srv/control.hpp"
 #include "../sdk/pacecatlidarsdk.h"
-#include"../sdk/global.h"
+#include "../sdk/global.h"
 enum PointField
 {
   INT8 = 1,
@@ -41,6 +41,7 @@ typedef struct
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu;
   std::string topic_imu;
   bool output_imu;
+  std::string adapter;
 } PubTopic;
 
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, const LidarPacketData *data, void *client_data)
@@ -177,7 +178,6 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, const LidarPacketD
       argdata->pub_imu->publish(imu);
     }
   }
-
 }
 void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char *data, int len)
 {
@@ -200,7 +200,7 @@ public:
       : Node("lidar_m300")
   {
     // 读取参数
-    //PubTopic pubtopic;
+    // PubTopic pubtopic;
     READ_PARAM(std::string, "frame_id", pubtopic.frame_id, "map");
     READ_PARAM(std::string, "topic_pointcloud", pubtopic.topic_pointcloud, "pointcloud");
     READ_PARAM(bool, "output_pointcloud", pubtopic.output_pointcloud, true);
@@ -208,11 +208,10 @@ public:
     READ_PARAM(bool, "output_custommsg", pubtopic.output_custommsg, true);
     READ_PARAM(std::string, "topic_imu", pubtopic.topic_imu, "imu");
     READ_PARAM(bool, "output_imu", pubtopic.output_imu, true);
+    READ_PARAM(std::string, "adapter", pubtopic.adapter, "eth0");
 
-    ArgData argdata={0};
-    std::string lidarip;
-    READ_PARAM(std::string, "lidar_ip", lidarip, "192.168.158.98");
-    memcpy(argdata.lidar_ip, lidarip.c_str(), lidarip.length());
+    ArgData argdata;
+    READ_PARAM(std::string, "lidar_ip", argdata.lidar_ip, "192.168.158.98");
     READ_PARAM(int, "lidar_port", argdata.lidar_port, 6543);
     READ_PARAM(int, "local_port", argdata.listen_port, 6668);
     READ_PARAM(int, "ptp_enable", argdata.ptp_enable, -1);
@@ -232,13 +231,13 @@ public:
     READ_PARAM(double, "dirty_factor", dfp.dirty_factor, 0.005);
 
     MatrixRotate mr;
-    READ_PARAM(int,"mr_enable", mr.mr_enable, 0);
-    READ_PARAM(float,"roll", mr.roll, static_cast<float>(0.0));
-    READ_PARAM(float,"pitch", mr.pitch, static_cast<float>(0.0));
-    READ_PARAM(float,"yaw", mr.yaw, static_cast<float>(0.0));
-    READ_PARAM(float,"x", mr.x, static_cast<float>(0.0));
-    READ_PARAM(float,"y", mr.y, static_cast<float>(0.0));
-    READ_PARAM(float,"z", mr.z, static_cast<float>(0.0));
+    READ_PARAM(int, "mr_enable", mr.mr_enable, 0);
+    READ_PARAM(float, "roll", mr.roll, static_cast<float>(0.0));
+    READ_PARAM(float, "pitch", mr.pitch, static_cast<float>(0.0));
+    READ_PARAM(float, "yaw", mr.yaw, static_cast<float>(0.0));
+    READ_PARAM(float, "x", mr.x, static_cast<float>(0.0));
+    READ_PARAM(float, "y", mr.y, static_cast<float>(0.0));
+    READ_PARAM(float, "z", mr.z, static_cast<float>(0.0));
     MatrixRotate_2 mr_2;
     setMatrixRotateParam(mr, mr_2);
 
@@ -260,22 +259,12 @@ public:
     }
 
     // 初始化SDK并设置回调
-    PaceCatLidarSDK::getInstance()->Init();
-    devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata, sfp, dfp,mr_2);
+    PaceCatLidarSDK::getInstance()->Init(pubtopic.adapter);
+    devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata, sfp, dfp, mr_2);
 
     PaceCatLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &pubtopic);
     PaceCatLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &pubtopic);
     PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
-
-    // 连接激光雷达（可能需要循环直到成功）
-    // while (PaceCatLidarSDK::getInstance()->read_calib(
-    //            argdata_.lidar_ip.c_str(), argdata_.lidar_port) != 0)
-    while (PaceCatLidarSDK::getInstance()->read_calib(
-               argdata.lidar_ip, argdata.lidar_port) != 0)
-    {
-      RCLCPP_INFO(this->get_logger(), "Waiting for lidar calibration...");
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
     PaceCatLidarSDK::getInstance()->ConnectLidar(devID);
     // 创建服务端
     service = this->create_service<pacecat_m300_inter::srv::Control>("scan_conntrol", std::bind(&LidarNode::control, this, _1, _2));
@@ -283,7 +272,7 @@ public:
 
 private:
   rclcpp::Service<pacecat_m300_inter::srv::Control>::SharedPtr service;
-  //ArgData argdata;
+  // ArgData argdata;
   PubTopic pubtopic;
   int devID;
   void control(const pacecat_m300_inter::srv::Control::Request::SharedPtr req, const pacecat_m300_inter::srv::Control::Response::SharedPtr res)

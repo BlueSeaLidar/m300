@@ -74,24 +74,6 @@ bool mac_check(const char *mac)
 	}
 }
 
-void DecTimestamp(uint32_t ts, uint32_t *ts2)
-{
-	timeval tv;
-	SystemAPI::GetTimeStamp(&tv, false);
-
-	uint32_t sec = tv.tv_sec % 3600;
-	if (sec < 5 && ts / 1000 > 3595)
-	{
-		ts2[0] = (tv.tv_sec / 3600 - 1) * 3600 + ts / 1000;
-	}
-	else
-	{
-		ts2[0] = (tv.tv_sec / 3600) * 3600 + ts / 1000;
-	}
-
-	ts2[1] = (ts % 1000) * 1000;
-}
-
 std::string BaseAPI::stringfilter(char *str, int num)
 {
 	int index = 0;
@@ -373,6 +355,29 @@ int SystemAPI::open_socket_port(int port, bool isRepeat)
 	return fd_udp;
 }
 
+int SystemAPI::open_socket_port()
+{
+#ifdef _WIN32
+	WSADATA wsda; //   Structure   to   store   info
+	WSAStartup(MAKEWORD(2, 2), &wsda);
+#endif // _WIN32
+	int fd_udp = static_cast<int>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
+	if (fd_udp <= 0)
+	{
+		return -1;
+	}
+
+	int rcvbufsize = 1024 * 1024 * 10;
+	setsockopt(fd_udp, SOL_SOCKET, SO_RCVBUF, (char *)&rcvbufsize, sizeof(rcvbufsize));
+
+	// DWORD nTimeout = 500;
+	// int ret = setsockopt(fd_udp, SOL_SOCKET, SO_RCVTIMEO, (const char*)&nTimeout, sizeof(nTimeout));
+	int time_out = 1000;
+	setsockopt(fd_udp, SOL_SOCKET, SO_RCVTIMEO, (char *)&time_out, sizeof(time_out));
+	return fd_udp;
+}
+
+
 int SystemAPI::closefd(int __fd, bool isSocket)
 {
 #ifdef _WIN32
@@ -449,21 +454,22 @@ void GetTimeStamp(timeval *tv, TIME_ST *timest)
 	timest->nano_second = tv->tv_usec * 1000;
 }
 
-uint64_t SystemAPI::GetTimeStamp(timeval *tv, bool isTimeStamp_M)
+uint64_t SystemAPI::GetTimeStamp(bool isTimeStamp_M)
 {
+	timeval  tv;
 #ifdef _WIN32
 	SYSTEMTIME st;
 	GetLocalTime(&st);
 
-	tv->tv_sec = (long)time(NULL);
-	tv->tv_usec = st.wMilliseconds;
+	tv.tv_sec = (long)time(NULL);
+	tv.tv_usec = st.wMilliseconds;
 #elif __linux
-	gettimeofday(tv, NULL);
+	gettimeofday(&tv, NULL);
 #endif
 	if (isTimeStamp_M)
-		return tv->tv_sec * 1000 + tv->tv_usec / 1000;
+		return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 	else
-		return tv->tv_sec;
+		return tv.tv_sec;
 }
 
 #include <chrono>

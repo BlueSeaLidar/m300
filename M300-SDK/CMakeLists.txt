@@ -63,10 +63,12 @@ IF (UNIX)
   my_add_executable(PointCloudAndImu ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/PointCloudAndImu.cpp)
   my_add_executable(CommandControl ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/CommandControl.cpp)
   my_add_executable(Upgrade ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/Upgrade.cpp)
+  my_add_executable(PlaybackPcap ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/PlaybackPcap.cpp)
   #添加链接库pthread
   target_link_libraries(PointCloudAndImu m pthread )
   target_link_libraries(CommandControl m pthread )
   target_link_libraries(Upgrade m pthread )
+  target_link_libraries(PlaybackPcap m pthread )
 ELSEIF (WIN32)
   #同上
   #file(GLOB_RECURSE REMOVE_SOURCES  "${PROJECT_SOURCE_DIR}/sdk/uart.c")
@@ -76,7 +78,9 @@ ELSEIF (WIN32)
   #list(REMOVE_ITEM HEADER_FILES ${REMOVE_HEADERS})
   
   source_group("Include" FILES ${HEADER_FILES})
+
   my_add_executable(PointCloudAndImu ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/PointCloudAndImu.cpp)
   my_add_executable(CommandControl ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/CommandControl.cpp)
   my_add_executable(Upgrade ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/Upgrade.cpp)
+  my_add_executable(PlaybackPcap ${SOURCE_FILES} ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/samples/PlaybackPcap.cpp)
 ENDIF ()

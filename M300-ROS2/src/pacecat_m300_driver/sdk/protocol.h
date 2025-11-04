@@ -10,10 +10,14 @@
 #define CMD_REPEAT 50
 #define LOCALPORT 6668
 #define HEARTPORT 6789
+#define PAGE_SIZE 256
+#define LINE_SIZE 64
 
 #define GS_PACK 0x4753
 #define S_PACK 0x0053
 #define C_PACK 0x0043
+#define RG_PACK 0x5247
+#define F_PACK 0x0046
 
 #define OP_FLASH_ERASE 0xFE00EEEE
 #define OP_WRITE_IAP 0xFE00AAAA
@@ -24,8 +28,12 @@
 #define TIMEOUT 3
 #define BUFFERSIZE 1024
 
+#define UDP_HEADER              8
+
 #define TAG_MIRROR_NOT_STABLE 0x80
 #define TAG_MOTOR_NOT_STABLE 0x40
+#define TAG_DUAL_ECHO_MODE   0x20
+#define TAG_WITH_RAIN_DETECT  0x10
 
 #define ONE_FRAME_BUFFER_SIZE 300 * 20 * 128
 // debug   factor
@@ -108,9 +116,10 @@ typedef struct
 {
 	uint16_t mirror_rpm;
 	uint16_t motor_rpm_x10;
-	uint8_t tags;
+    uint8_t tag;
+    uint8_t rain;
+	
 } RuntimeInfoV1;
-
 typedef struct
 {
 	uint8_t version;
@@ -255,40 +264,6 @@ struct KeepAlive
 	uint32_t reserved[4];
 };
 
-struct FirmwareFile
-{
-	int code;
-	int len;
-	int sent;
-	uint32_t crc;
-	uint8_t date[4];
-	uint8_t unused[120];
-	char describe[512];
-	uint8_t buffer[0];
-};
-
-struct FirmwarePart
-{
-	uint32_t offset;
-	uint32_t crc;
-	uint32_t buf[128];
-};
-
-struct FirmWriteResp
-{
-	uint32_t offset;
-	int result;
-	char msg[128];
-};
-struct ResendPack
-{
-	time_t timeout;
-	uint32_t tried;
-	uint16_t cmd;
-	uint16_t sn;
-	uint16_t len;
-	char buf[2048];
-};
 
 typedef struct
 {
@@ -326,7 +301,7 @@ typedef struct
 
 typedef struct
 {
-	char lidar_ip[16];
+	std::string lidar_ip;
 	int lidar_port;
 	int listen_port;
 	int ptp_enable;
@@ -338,5 +313,6 @@ typedef struct
 typedef void (*LidarCloudPointCallback)(uint32_t handle, const uint8_t dev_type, const LidarPacketData *data, void *client_data);
 typedef void (*LidarImuDataCallback)(uint32_t handle, const uint8_t dev_type, const LidarPacketData *data, void *client_data);
 typedef void (*LidarLogDataCallback)(uint32_t handle, const uint8_t dev_type, const char *data, int len);
+typedef void (*LidarAlarmCallback)(uint32_t handle, const uint8_t dev_type, const char *data, int len);
 
 #endif

@@ -59,8 +59,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, const LidarPack
   {
     return;
   }
-  //  printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
-  //  handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
+   printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
+   handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
   if (data->data_type == LIDARPOINTCLOUD)
   {
     LidarCloudPointData *p_point_data = (LidarCloudPointData *)data->data;
@@ -197,48 +197,7 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, const char *data, 
   }
   printf("ID::%d print level:%d msg:%s\n", handle, dev_type, data);
 }
-void AlarmDataCallback(uint32_t handle, const uint8_t dev_type, const char *data, int len)
-{
-	if (data == nullptr)
-	{
-		return;
-	}
-	uint32_t flag = 0;
-	memcpy(&flag, data, len);
-	// 判定条件:温度高于85  底板转速和机头转速为0  电压过低或者过高:[10,32]
-	if (getbit(data[0], ERR_TEMPERATURE_HIGH))
-	{
-		printf("ERR_TEMPERATURE_HIGH\n");
-	}
-	if (getbit(data[0], ERR_MOTOR_ZERO))
-	{
-		printf("ERR_MOTOR_ZERO\n");
-	}
-	if (getbit(data[0], ERR_MIRROR_ZERO))
-	{
-		printf("ERR_MIRROR_ZERO\n");
-	}
-	if (getbit(data[0], ERR_VOLTAGE_LOW))
-	{
-		printf("ERR_VOLTAGE_LOW\n");
-	}
-	if (getbit(data[0], ERR_VOLTAGE_HIGH))
-	{
-		printf("ERR_VOLTAGE_HIGH\n");
-	}
-  if (getbit(data[0], ERR_MOTOR_NO_STABLE))
-	{
-		printf("ERR_MOTOR_NO_STABLE\n");
-	}
-	if (getbit(data[0], ERR_MIRROR_NO_STABLE))
-	{
-		printf("TAG_MIRROR_NOT_STABLE\n");
-	}
-  if (getbit(data[0], ERR_DATA_ZERO))
-	{
-		printf("too many zero point num, scale factor over 0.8\n");
-	}
-}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "Lidar_M300");
@@ -252,39 +211,12 @@ int main(int argc, char **argv)
   nh.param("output_custommsg", pubtopic.output_custommsg, true);
   nh.param("topic_imu", pubtopic.topic_imu, std::string("imu"));
   nh.param("output_imu", pubtopic.output_imu, true);
-  nh.param("adapter", pubtopic.adapter, std::string("eth0"));
 
+  std::string log_path;
+  nh.param("log_path", log_path, std::string("/tmp/1.txt"));
+  int frame_package_num;
+  nh.param("frame_package_num", frame_package_num, 150);
 
-  ArgData argdata;
-  nh.param("lidar_ip", argdata.lidar_ip, std::string("192.168.158.98"));
-  nh.param("lidar_port", argdata.lidar_port, 6543);
-  nh.param("listen_port", argdata.listen_port, 6668);
-  nh.param("ptp_enable", argdata.ptp_enable, -1);
-  nh.param("frame_package_num", argdata.frame_package_num, 180);
-  nh.param("timemode", argdata.timemode, 1);
-
-  ShadowsFilterParam sfp;
-  nh.param("sfp_enable", sfp.sfp_enable, 1);
-  nh.param("window", sfp.window, 1);
-  nh.param("min_angle", sfp.min_angle, 5.0);
-  nh.param("max_angle", sfp.max_angle, 175.0);
-  nh.param("effective_distance", sfp.effective_distance, 5.0);
-
-  DirtyFilterParam dfp;
-  nh.param("dfp_enable", dfp.dfp_enable, 1);
-  nh.param("continuous_times", dfp.continuous_times, 30);
-  nh.param("dirty_factor", dfp.dirty_factor, 0.005);
-
-  MatrixRotate mr;
-  nh.param("mr_enable", mr.mr_enable, 0);
-  nh.param("roll", mr.roll,static_cast<float>(0.0));
-  nh.param("pitch", mr.pitch, static_cast<float>(0.0));
-  nh.param("yaw", mr.yaw, static_cast<float>(0.0));
-  nh.param("x", mr.x, static_cast<float>(0.0));
-  nh.param("y", mr.y, static_cast<float>(0.0));
-  nh.param("z", mr.z, static_cast<float>(0.0));
-  MatrixRotate_2 mr_2;
-  setMatrixRotateParam(mr,mr_2);
 
   if (pubtopic.output_pointcloud)
     pubtopic.pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(pubtopic.topic_pointcloud, 10);
@@ -293,15 +225,12 @@ int main(int argc, char **argv)
   if (pubtopic.output_imu)
     pubtopic.pub_imu = nh.advertise<sensor_msgs::Imu>(pubtopic.topic_imu, 10);
 
-  PaceCatLidarSDK::getInstance()->Init(pubtopic.adapter);
-  int devID = PaceCatLidarSDK::getInstance()->AddLidar(argdata,sfp,dfp,mr_2);
-
+  int devID = PaceCatLidarSDK::getInstance()->AddLidarForPlayback(log_path,frame_package_num);
   PaceCatLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &pubtopic);
   PaceCatLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &pubtopic);
   PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
-  PaceCatLidarSDK::getInstance()->SetAlarmDataCallback(devID, AlarmDataCallback, nullptr);
 
-  PaceCatLidarSDK::getInstance()->ConnectLidar(devID);
+  PaceCatLidarSDK::getInstance()->ConnectLidar(devID,true);
 
   while (ros::ok())
   {

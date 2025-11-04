@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     frame_id: map
-    lidar_ip: 192.168.0.88
+    lidar_ip: 192.168.0.198
     lidar_port: 6543
     listen_port: 6668
     output_custommsg: true
@@ -13,6 +13,7 @@
     ptp_enable: -1
     frame_package_num: 150
     timemode: 0
+    adapter: ens38
 #sfp
     sfp_enable : 0
     window: 1

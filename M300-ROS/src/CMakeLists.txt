@@ -35,11 +35,19 @@ FILE(GLOB PACECAT_SDK_SRC
    "${PACECAT_SDK_PATH}/*.c"
 )
 add_executable(${PROJECT_NAME}_node  ./src/node.cpp ${PACECAT_SDK_SRC})
+add_executable(${PROJECT_NAME}_playback_node  ./src/playback_node.cpp ${PACECAT_SDK_SRC})
+
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_playback_node ${catkin_LIBRARIES})
 
 add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_playback_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 
 install(TARGETS ${PROJECT_NAME}_node
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(TARGETS ${PROJECT_NAME}_playback_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

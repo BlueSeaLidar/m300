@@ -1,0 +1,18 @@
+<launch>
+  <node name="M300" pkg="pacecat_m300" type="pacecat_m300_playback_node" output="screen">
+
+    <param name="frame_id" value="map" />
+
+    <param name="topic_pointcloud" value="pointcloud" />
+    <param name="output_pointcloud" value= "true"/>
+
+    <param name="topic_custommsg" value="custommsg" />
+    <param name="output_custommsg" value="false"/>
+
+    <param name="topic_imu" value="imu" />
+    <param name="output_imu" value="true"/>
+   
+    <param name="log_path" value="/home/pacecat/wangzn/logdata/test.pcap" />
+    <param name="frame_package_num" value="150" />
+  </node>
+</launch>

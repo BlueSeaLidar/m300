@@ -1,6 +1,9 @@
 # 3 Interface description
 
 This section focuses on the interfaces called externally in the PaceCatLidarSDK class.
+update time:2025-10-23  
+mcu latest version 20250924
+motor latest version 20250822
 
 ***#include<pacecatlidarsdk.h>***
 
@@ -182,6 +185,9 @@ struct RunConfig
     MatrixRotate_2 mr_2;                            //matrix  rotate param, control  pointcloud adjust position
     int frame_package_num;                          //set packet num  in one frame
     int timemode;                                   //time mode
+    uint8_t rain;                                   // current frame rain value
+    uint8_t echo_mode;                              //lidar  single echo or dual echo
+    std::string log_path;                           //playback log path
 };
 ```
 
@@ -432,7 +438,93 @@ struct RunConfig
 ```C++
 @Name    GetConfig
 @Brief   Get configuration information based on lidar ID
-@Param   int ID                       lidar ID
+@Param   int ID                      lidar ID
 @Return  RunConfig                   lidar config                       
+@Note   
+```
+
+```C++
+@Name    SetLidarPTPInit
+@Brief   ptp restart service
+@Param   int ID                        lidar ID
+@Return  bool                         execute is ok                     
+@Note    if ptp run error,please call it api
+
+```
+
+```C++
+@Name    QueryLidarNetWork
+@Brief   debug query
+@Param   int ID                       lidar ID
+@Param   std::string& netinfo         
+@Return  bool                         execute is ok                       
+@Note  
+```
+
+```C++
+@Name    ClearFrameCache
+@Brief   
+@Param   int ID                       lidar ID
+@Return  bool                         execute is ok                       
+@Note   after a manual reboot or power loss, the current frame cache must be cleared and statistics recalculated.
+```
+
+```C++
+@Name    QueryDirtyData
+@Brief   
+@Param   int ID                       lidar ID
+@Param   std::string& dirty_data      
+@Return   bool                        execute is ok                       
+@Note    it is recommended to perform a query once when the driver first starts up, and then wait until data anomalies occur before querying again to collect statistics.
+```
+
+```C++
+@Name    QueryMCUInfo
+@Brief   query lidar mcu info
+@Param   int ID                              lidar ID
+@Param   std::string& encoding_disk_info     
+@Return   bool                               execute is ok                       
+@Note   
+```
+
+```C++
+@Name    QueryLidarErrList
+@Brief   
+@Param   int ID                              lidar ID
+@Param   std::string& errlist                error List (Binary, Requires Additional Parsing)
+@Return  bool                               execute is ok                       
+@Note   
+```
+
+```C++
+@Name    CleanLidarErrList
+@Brief   
+@Param   int ID                       lidar ID
+@Return  bool                         execute is ok                       
+@Note    use with QueryLidarErrList
+```
+
+```C++
+@Name    QueryRainData
+@Brief   Query the rain and fog data for the current frame
+@Param   int ID                       lidar ID
+@Return  uint8_t&rain                 facotr  value range 0-60                  
+@Note   
+```
+
+```C++
+@Name    QueryEchoMode
+@Brief   query lidar is single echo or dual echo
+@Param   int ID                       lidar ID
+@Return   uint8_t&echo_mode            0 single echo  1 dual echo                    
+@Note   
+```
+
+```C++
+@Name    QueryADCInfo
+@Brief   debug query
+@Param   int ID                              lidar ID
+@Param   std::string& adcinfo                
+@Return  bool                               execute is ok                       
 @Note   
 ```
