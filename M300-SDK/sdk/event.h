@@ -77,14 +77,4 @@ typedef  struct
  } SYS_EVENT_LOG; 							  //注意不同操作系统的__PACKED。。。
  #pragma pack (pop)
  
- //数据校验是累加和，代码如下：
- /* 	
-	CsumP = (uint32_t*)&Sys_Event_LogP->Boot_Count;
-	for(i=0;i<(sizeof(SYS_EVENT_LOG)-16)/4;i++)
-	{
-		DCSum += *CsumP++;
-	}	
-	Sys_Event_LogP->DCSum = DCSum;
- */
-  
 #endif

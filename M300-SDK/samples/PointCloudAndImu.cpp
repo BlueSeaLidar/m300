@@ -8,7 +8,7 @@
 using namespace moodycamel;
 
 //多雷达宏定义
-#define DUAL_LIDAR
+//#define DUAL_LIDAR
 ReaderWriterQueue<std::string> g_pointcloud_queue;
 ReaderWriterQueue<std::string> g_imu_queue;
 
@@ -120,7 +120,6 @@ void AlarmDataCallback(uint32_t handle, const uint8_t dev_type, const char *data
 
 int main()
 {
-
 	std::string adapter = "ens38";
 	ShadowsFilterParam sfp;
 	sfp.sfp_enable = 0;
@@ -148,7 +147,7 @@ int main()
 	PaceCatLidarSDK::getInstance()->Init(adapter);
 #if 1
 	ArgData argdata;
-	argdata.lidar_ip="192.168.158.10";
+	argdata.lidar_ip="192.168.0.199";
 	argdata.lidar_port = 6543;
 	argdata.listen_port = 6668;
 	argdata.ptp_enable = 0;
@@ -165,6 +164,16 @@ int main()
 	if (!ret)
 		return -1;
 #endif
+
+	// PaceCatLidarSDK::getInstance()->Init(adapter);
+	// int devID2 = PaceCatLidarSDK::getInstance()->AddLidarForUpgrade(argdata.lidar_ip,argdata.lidar_port,6668);
+	// PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID2, LogDataCallback, nullptr);
+
+	// PaceCatLidarSDK::getInstance()->Init(adapter);
+	// int devID3 = PaceCatLidarSDK::getInstance()->AddLidarForUpgrade(argdata.lidar_ip,argdata.lidar_port,6668);
+	// PaceCatLidarSDK::getInstance()->SetLogDataCallback(devID3, LogDataCallback, nullptr);
+
+
 
 #if 0
 	bool result = false;

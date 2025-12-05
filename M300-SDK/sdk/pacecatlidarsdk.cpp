@@ -69,6 +69,7 @@ void PaceCatLidarSDK::deleteInstance()
 }
 PaceCatLidarSDK::PaceCatLidarSDK()
 {
+	m_heartinfo.isrun = false;
 }
 
 PaceCatLidarSDK::~PaceCatLidarSDK()
@@ -162,11 +163,14 @@ void PaceCatLidarSDK::WriteAlarmData(int ID, const uint8_t dev_type, char *data,
 void PaceCatLidarSDK::Init(std::string adapter)
 {
 	// Conflict with ros's single-process framework, temporarily disabled
-	m_heartinfo.code = 0;
-	m_heartinfo.isrun = true;
-	m_heartinfo.adapter = adapter;
-	m_heartthread = std::thread(&PaceCatLidarSDK::HeartThreadProc, PaceCatLidarSDK::getInstance(), std::ref(m_heartinfo));
-	m_heartthread.detach();
+	if (!m_heartinfo.isrun)
+	{
+		m_heartinfo.code = 0;
+		m_heartinfo.isrun = true;
+		m_heartinfo.adapter = adapter;
+		m_heartthread = std::thread(&PaceCatLidarSDK::HeartThreadProc, PaceCatLidarSDK::getInstance(), std::ref(m_heartinfo));
+		m_heartthread.detach();
+	}
 }
 void PaceCatLidarSDK::Uninit()
 {
@@ -622,7 +626,7 @@ bool PaceCatLidarSDK::QueryLidarErrList(int ID, std::string &errlist)
 		return false;
 
 	lidar->action = LidarAction::CMD_TALK;
-	lidar->send_type = S_PACK;
+	lidar->send_type = C_PACK;
 	strcpy(lidar->send_buf, "LEVENTRH");
 	lidar->send_len = 8;
 	int index = CMD_REPEAT;
@@ -753,6 +757,9 @@ double PaceCatLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarClou
 		point.tag += 128; // 光学罩内的点进行标记，方便后续进行脏污判断
 	}
 
+	if (point.x == 0 && point.y == 0 && point.z == 0)
+		point.reflectivity = 0;
+
 #if DEBUG_TEST
 	if (bluesea.depth == 0)
 		m_zero_point_num++;
@@ -877,7 +884,10 @@ void PaceCatLidarSDK::UDPDataThreadProc(int id)
 		if (ret < 0)
 			break;
 		else if (ret == 0)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			continue;
+		}
 		else if (ret > 0)
 		{
 			if (FD_ISSET(fd, &fds))
@@ -1018,7 +1028,6 @@ void PaceCatLidarSDK::UDPDataThreadProc(int id)
 							LidarCloudPointData *dat2 = (LidarCloudPointData *)pointclouddata->data;
 							SystemAPI::GetTimeStamp(true);
 
-
 							int dirt_flag = 0;
 							int point_idx = 0;
 							for (int i = 0; i < count; i++)
@@ -1131,7 +1140,7 @@ void PaceCatLidarSDK::UDPDataThreadProc(int id)
 						IIM42652_FIFO_PACKET_16_ST *imu_stmp = (IIM42652_FIFO_PACKET_16_ST *)(trans->data + 1);
 						if (trans->idx != (uint16_t)debuginfo.imu_packet_idx && debuginfo.imu_packet_idx >= 0)
 						{
-							std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string(trans->idx) + " now: " + std::to_string((uint16_t)debuginfo.imu_packet_idx) + " index:" + std::to_string(debuginfo.imu_timestamp_drop_num);
+							std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string((uint16_t)debuginfo.imu_packet_idx) + " now: " + std::to_string(trans->idx) + " index:" + std::to_string(debuginfo.imu_timestamp_drop_num);
 							WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 						}
 						debuginfo.imu_packet_idx = trans->idx + 1;
@@ -1293,6 +1302,7 @@ void PaceCatLidarSDK::UDPCmdThreadProc(int id)
 			break;
 		else if (ret == 0)
 		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
 		else if (ret > 0)
@@ -1763,7 +1773,7 @@ void PaceCatLidarSDK::PlaybackThreadProc(int id)
 			IIM42652_FIFO_PACKET_16_ST *imu_stmp = (IIM42652_FIFO_PACKET_16_ST *)(trans->data + 1);
 			if (trans->idx != (uint16_t)debuginfo.imu_packet_idx && debuginfo.imu_packet_idx >= 0)
 			{
-				std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string(trans->idx) + " now: " + std::to_string((uint16_t)debuginfo.imu_packet_idx) + " index:" + std::to_string(debuginfo.imu_timestamp_drop_num);
+				std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string((uint16_t)debuginfo.imu_packet_idx) + " now: " + std::to_string(trans->idx) + " index:" + std::to_string(debuginfo.imu_timestamp_drop_num);
 				WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 			}
 			debuginfo.imu_packet_idx = trans->idx + 1;
@@ -2101,6 +2111,7 @@ void PaceCatLidarSDK::HeartThreadProc(HeartInfo &heartinfo)
 	uint64_t currentTimeStamp = SystemAPI::GetTimeStamp(false);
 	uint64_t tto = currentTimeStamp + 1;
 	socklen_t sz = sizeof(addr);
+
 	while (heartinfo.isrun)
 	{
 		fd_set fds;
@@ -2137,37 +2148,38 @@ void PaceCatLidarSDK::HeartThreadProc(HeartInfo &heartinfo)
 						if (!heartinfo.lidars[i].isonline)
 						{
 							heartinfo.lidars[i].isonline = true;
-
+							// std::string result = sn + " " + ip +" "+std::to_string(heartinfo.lidars[i].timestamp)+"  online";
 							std::string result = sn + " " + ip + "  online";
 							WriteLogData(id, 0, (char *)result.c_str(), result.size());
 						}
-						break;
-					}
-					// exist  two more lidars with same ip
-					if (ip == heartinfo.lidars[i].ip)
-					{
-						heartinfo.value = "multiple lidars with the same ip";
-						heartinfo.code = -1;
-						// heartinfo.isrun=false;
-						break;
 					}
 				}
 				if (!isexist)
 				{
-					ConnectInfo info;
-					info.ip = ip;
-					info.sn = sn;
-					info.port = devheart->port;
-					info.timestamp = (devheart->timestamp[1]) * 1000 + devheart->timestamp[0] / 1000000;
-					info.temperature = devheart->temperature;
-					info.motor_rpm = devheart->motor_rpm;
-					info.mirror_rpm = devheart->mirror_rpm;
-					info.voltage = devheart->voltage;
-					info.isonline = true;
-					info.flag = true;
-					heartinfo.lidars.push_back(info);
-					std::string result = sn + " " + ip + "  online";
-					WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					// 这里限制仅一个雷达
+					if (heartinfo.lidars.size() == 0)
+					{
+						ConnectInfo info;
+						info.ip = ip;
+						info.sn = sn;
+						info.port = devheart->port;
+						info.timestamp = (devheart->timestamp[1]) * 1000 + devheart->timestamp[0] / 1000000;
+						info.temperature = devheart->temperature;
+						info.motor_rpm = devheart->motor_rpm;
+						info.mirror_rpm = devheart->mirror_rpm;
+						info.voltage = devheart->voltage;
+						info.isonline = true;
+						info.flag = true;
+						heartinfo.lidars.push_back(info);
+						// std::string result = sn + " " + ip +" "+std::to_string(info.timestamp)+"  online";
+						std::string result = sn + " " + ip + "  online";
+						WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					}
+					else
+					{
+						std::string result = sn + " " + std::to_string(sn.size())+" "+ip + "recv other heart packet";
+						WriteLogData(id, 0, (char *)result.c_str(), result.size());
+					}
 				}
 
 				// 查询该ip所在的ID，发送严重警告事件

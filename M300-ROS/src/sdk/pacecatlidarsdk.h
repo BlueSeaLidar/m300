@@ -27,7 +27,7 @@ typedef uint32_t in_addr_t;
 #include"global.h"
 #include"event.h"
 
-#define M300_E_SDKVERSION "V1.6.2_2025102901" // SDK版本号
+#define M300_E_SDKVERSION "V1.6.5_2025120401" // SDK版本号
 
 #define DEBUG_TEST 1
 #define LOG_TIMER 2
@@ -172,7 +172,7 @@ struct RunConfig
 	char send_buf[256]={0};
 	int send_type;
 	int recv_len;
-	char recv_buf[1024]={0};
+	char recv_buf[2048]={0};
 	int ptp_enable;
 	bool cache_clear{false}; 
 	ShadowsFilterParam sfp ;

@@ -477,11 +477,22 @@ uint64_t SystemAPI::GetTimeStamp(bool isTimeStamp_M)
 std::string SystemAPI::getCurrentTime()
 {
 	auto now = std::chrono::system_clock::now();
-	std::time_t t = std::chrono::system_clock::to_time_t(now);
-	std::tm tm = *std::localtime(&t);
-	char result[64] = {0};
-	sprintf(result, "%04d%02d%02d_%02d%02d%02d", 1900 + tm.tm_year, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	return result;
+    
+    // 转换为time_t获取年月日时分秒
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&t);
+    
+    // 获取毫秒部分
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()) % 1000;
+    
+    char result[80] = {0};  // 增加缓冲区大小
+    sprintf(result, "%04d%02d%02d_%02d%02d%02d.%03lld", 
+            1900 + tm.tm_year, tm.tm_mon + 1, tm.tm_mday, 
+            tm.tm_hour, tm.tm_min, tm.tm_sec,
+            static_cast<long long>(milliseconds.count()));
+    
+    return result;
 }
 void CommunicationAPI::send_cmd_udp(int fd_udp, const char *dev_ip, int dev_port, int cmd, int sn, int len, const void *snd_buf)
 {
